@@ -1,0 +1,17 @@
+# Visual Studio
+.vs/
+*.user
+*.suo
+
+# Build output
+bin/
+obj/
+
+# User-specific files
+*.csproj.user
+
+# ASP.NET development
+appsettings.Local.json
+
+# Secrets
+secrets.json
