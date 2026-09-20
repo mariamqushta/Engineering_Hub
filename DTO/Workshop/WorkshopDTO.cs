@@ -1,17 +1,15 @@
 ﻿using System;
-using System.Collections.Generic;
 
-namespace Engineering_Hub.models
+namespace Engineering_Hub.DTO.Workshop
 {
-    public class Workshop
+    public class WorkshopDTO
     {
-        public int Id { get; set; }
-
         public int TrackId { get; set; }
 
         public string Title { get; set; }
 
         public string? Description { get; set; }
+
         public decimal Price { get; set; }
 
         public string Place { get; set; }
@@ -23,14 +21,5 @@ namespace Engineering_Hub.models
         public TimeSpan EndTime { get; set; }
 
         public int Capacity { get; set; }
-
-        public SessionStatus Status { get; set; }
-
-
-        // Relationships
-
-        public Track Track { get; set; }
-
-        public ICollection<WorkshopBooking> Bookings { get; set; }
     }
 }

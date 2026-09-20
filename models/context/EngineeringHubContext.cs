@@ -29,7 +29,9 @@ namespace Engineering_Hub.models.context
 
         public DbSet<TrackPackage> TrackPackages { get; set; }
         public DbSet<TrackPackageBooking> TrackPackageBookings { get; set; }
+        public DbSet<TrackPackageWorkshop> TrackPackageWorkshops { get; set; }
 
+        public DbSet<TrackPackageInteractive> TrackPackageInteractives { get; set; }
         public DbSet<Certificate> Certificates { get; set; }
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -54,9 +56,23 @@ namespace Engineering_Hub.models.context
                 .Property(x => x.Grade)
                 .HasPrecision(5, 2);
 
+            builder.Entity<Track>()
+                .Property(x => x.Price)
+                .HasPrecision(18, 2);
+
+            builder.Entity<Workshop>()
+                .Property(x => x.Price)
+                .HasPrecision(18, 2);
+
+            builder.Entity<InteractiveActivity>()
+                .Property(x => x.Price)
+                .HasPrecision(18, 2);
+
             builder.Entity<TrackPackage>()
                 .Property(x => x.Price)
                 .HasPrecision(18, 2);
+
+            // LessonProgress relationships
             builder.Entity<LessonProgress>()
                 .HasOne(x => x.Student)
                 .WithMany(x => x.LessonProgresses)
@@ -70,6 +86,43 @@ namespace Engineering_Hub.models.context
             builder.Entity<LessonProgress>()
                 .HasIndex(x => new { x.StudentId, x.LessonId })
                 .IsUnique();
+
+            // TrackPackageWorkshop
+            builder.Entity<TrackPackageWorkshop>()
+                .HasKey(x => new
+                {
+                    x.TrackPackageId,
+                    x.WorkshopId
+                });
+
+            builder.Entity<TrackPackageWorkshop>()
+               .HasOne(x => x.TrackPackage)
+               .WithMany(x => x.TrackPackageWorkshops)
+               .HasForeignKey(x => x.TrackPackageId)
+               .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<TrackPackageWorkshop>()
+                .HasOne(x => x.Workshop)
+                .WithMany()
+                .HasForeignKey(x => x.WorkshopId);
+
+            // TrackPackageInteractive
+            builder.Entity<TrackPackageInteractive>()
+                .HasKey(x => new
+                {
+                    x.TrackPackageId,
+                    x.InteractiveActivityId
+                });
+            builder.Entity<TrackPackageInteractive>()
+                .HasOne(x => x.TrackPackage)
+                .WithMany(x => x.TrackPackageInteractives)
+                .HasForeignKey(x => x.TrackPackageId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<TrackPackageInteractive>()
+                .HasOne(x => x.InteractiveActivity)
+                .WithMany()
+                .HasForeignKey(x => x.InteractiveActivityId);
         }
     }
     }

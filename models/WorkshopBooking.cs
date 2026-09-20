@@ -8,7 +8,9 @@ namespace Engineering_Hub.models
         Scheduled,
         Ongoing,
         Finished,
-        Cancelled
+        Cancelled,
+        Active,
+        Completed
     }
     public class WorkshopBooking
     {

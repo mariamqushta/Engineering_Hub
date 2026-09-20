@@ -4,6 +4,7 @@ using Engineering_Hub.models.context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Engineering_Hub.Migrations
 {
     [DbContext(typeof(EngineeringHubContext))]
-    partial class EngineeringHubContextModelSnapshot : ModelSnapshot
+    [Migration("20260920053012_FixTrackPackageRelationships")]
+    partial class FixTrackPackageRelationships
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

@@ -4,6 +4,7 @@ using Engineering_Hub.models.context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Engineering_Hub.Migrations
 {
     [DbContext(typeof(EngineeringHubContext))]
-    partial class EngineeringHubContextModelSnapshot : ModelSnapshot
+    [Migration("20260916054151_AddPricesToBookableEntities")]
+    partial class AddPricesToBookableEntities
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -524,36 +527,6 @@ namespace Engineering_Hub.Migrations
                     b.ToTable("TrackPackageBookings");
                 });
 
-            modelBuilder.Entity("Engineering_Hub.models.TrackPackageInteractive", b =>
-                {
-                    b.Property<int>("TrackPackageId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("InteractiveActivityId")
-                        .HasColumnType("int");
-
-                    b.HasKey("TrackPackageId", "InteractiveActivityId");
-
-                    b.HasIndex("InteractiveActivityId");
-
-                    b.ToTable("TrackPackageInteractives");
-                });
-
-            modelBuilder.Entity("Engineering_Hub.models.TrackPackageWorkshop", b =>
-                {
-                    b.Property<int>("TrackPackageId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("WorkshopId")
-                        .HasColumnType("int");
-
-                    b.HasKey("TrackPackageId", "WorkshopId");
-
-                    b.HasIndex("WorkshopId");
-
-                    b.ToTable("TrackPackageWorkshops");
-                });
-
             modelBuilder.Entity("Engineering_Hub.models.Workshop", b =>
                 {
                     b.Property<int>("Id")
@@ -953,44 +926,6 @@ namespace Engineering_Hub.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("Engineering_Hub.models.TrackPackageInteractive", b =>
-                {
-                    b.HasOne("Engineering_Hub.models.InteractiveActivity", "InteractiveActivity")
-                        .WithMany()
-                        .HasForeignKey("InteractiveActivityId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Engineering_Hub.models.TrackPackage", "TrackPackage")
-                        .WithMany("TrackPackageInteractives")
-                        .HasForeignKey("TrackPackageId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("InteractiveActivity");
-
-                    b.Navigation("TrackPackage");
-                });
-
-            modelBuilder.Entity("Engineering_Hub.models.TrackPackageWorkshop", b =>
-                {
-                    b.HasOne("Engineering_Hub.models.TrackPackage", "TrackPackage")
-                        .WithMany("TrackPackageWorkshops")
-                        .HasForeignKey("TrackPackageId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("Engineering_Hub.models.Workshop", "Workshop")
-                        .WithMany()
-                        .HasForeignKey("WorkshopId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("TrackPackage");
-
-                    b.Navigation("Workshop");
-                });
-
             modelBuilder.Entity("Engineering_Hub.models.Workshop", b =>
                 {
                     b.HasOne("Engineering_Hub.models.Track", "Track")
@@ -1128,10 +1063,6 @@ namespace Engineering_Hub.Migrations
             modelBuilder.Entity("Engineering_Hub.models.TrackPackage", b =>
                 {
                     b.Navigation("Bookings");
-
-                    b.Navigation("TrackPackageInteractives");
-
-                    b.Navigation("TrackPackageWorkshops");
                 });
 
             modelBuilder.Entity("Engineering_Hub.models.Workshop", b =>

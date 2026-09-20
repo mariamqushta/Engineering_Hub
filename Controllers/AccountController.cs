@@ -57,7 +57,6 @@ namespace Engineering_Hub.Controllers
 
             List<Claim> userdata = new List<Claim>();
             userdata.Add(new Claim(ClaimTypes.Name, dto.UserName));
-            userdata.Add(new Claim(ClaimTypes.MobilePhone, user.PhoneNumber));
             userdata.Add(new Claim(ClaimTypes.NameIdentifier, user.Id));
 
 

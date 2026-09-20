@@ -20,6 +20,10 @@ namespace Engineering_Hub.models
         public Track Track { get; set; }
 
         public ICollection<TrackPackageBooking> Bookings { get; set; }
+
+        public ICollection<TrackPackageWorkshop> TrackPackageWorkshops { get; set; }
+
+        public ICollection<TrackPackageInteractive> TrackPackageInteractives { get; set; }
     }
 }
 

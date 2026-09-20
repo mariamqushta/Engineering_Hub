@@ -33,6 +33,21 @@ namespace Engineering_Hub.Repository
                 .Where(condition)
                 .ToList();
         }
+        public List<T> GetByConditionWithInclude(
+        Expression<Func<T, bool>> condition,
+        params Expression<Func<T, object>>[] includes)
+        {
+            IQueryable<T> query = _context.Set<T>();
+
+            foreach (var include in includes)
+            {
+                query = query.Include(include);
+            }
+
+            return query
+                .Where(condition)
+                .ToList();
+        }
         public void add(T entity)
         {
             _context.Set<T>().Add(entity);

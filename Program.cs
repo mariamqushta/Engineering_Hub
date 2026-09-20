@@ -2,6 +2,7 @@ using Engineering_Hub.AutoMapper;
 using Engineering_Hub.models;
 using Engineering_Hub.models.context;
 using Engineering_Hub.Repository;
+using Engineering_Hub.Services;
 using Engineering_Hub.UnitOfWork;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
@@ -21,7 +22,22 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 
 builder.Services.AddScoped<GenericRepository<RefreshToken>>();
-builder.Services.AddScoped<UnitOfWork>();
+builder.Services.AddScoped<UnitWork>();
+builder.Services.AddScoped<ITrackBookingService, TrackBookingService>();
+builder.Services.AddScoped<ILessonService, LessonService>();
+builder.Services.AddScoped<ILessonAccessService, LessonAccessService>();
+builder.Services.AddScoped<ILessonCompletionService, LessonCompletionService>();
+builder.Services.AddScoped<IWorkshopBookingService, WorkshopBookingService>();
+builder.Services.AddScoped<IInteractiveBookingService, InteractiveBookingService>();
+builder.Services.AddScoped<ITrackPackageBookingService, TrackPackageBookingService>();
+builder.Services.AddScoped<IWorkshopService, WorkshopService>();
+builder.Services.AddScoped<ITrackService, TrackService>();
+builder.Services.AddScoped<
+    IInteractiveActivityService,
+    InteractiveActivityService>();
+builder.Services.AddScoped<
+    ITrackPackageService,
+    TrackPackageService>();
 
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddDbContext<EngineeringHubContext>(options =>
