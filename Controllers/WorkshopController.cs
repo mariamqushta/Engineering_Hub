@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 namespace Engineering_Hub.Controllers
 {
     [ApiController]
-    [Authorize(Roles = "Student")]
+   
     [Route("api/[controller]")]
     public class WorkshopController : ControllerBase
     {

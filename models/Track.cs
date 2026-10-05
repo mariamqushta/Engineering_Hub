@@ -23,16 +23,15 @@ namespace Engineering_Hub.models
 
         public ICollection<Lesson> Lessons { get; set; } = new List<Lesson>();
 
-        public ICollection<TrackInstructor> TrackInstructors { get; set; }
+        public ICollection<TrackInstructor> TrackInstructors { get; set; } = new List<TrackInstructor>();
 
-        public ICollection<TrackEnrollment> TrackEnrollments { get; set; }
+        public ICollection<TrackEnrollment> TrackEnrollments { get; set; } = new List<TrackEnrollment>();
 
-        public ICollection<Workshop> Workshops { get; set; }
+        public ICollection<Workshop> Workshops { get; set; } = new List<Workshop>();
 
-        public ICollection<InteractiveActivity> InteractiveActivities { get; set; }
+        public ICollection<InteractiveActivity> InteractiveActivities { get; set; } = new List<InteractiveActivity>();
 
-        public ICollection<TrackPackage> TrackPackages { get; set; }
 
-        public ICollection<Certificate> Certificates { get; set; }
+        public ICollection<Certificate> Certificates { get; set; } = new List<Certificate>();
     }
 }

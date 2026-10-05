@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using System.Reflection.Emit;
 
 namespace Engineering_Hub.models.context
 {
@@ -15,6 +16,8 @@ namespace Engineering_Hub.models.context
         public DbSet<Track> Tracks { get; set; }
         public DbSet<Lesson> Lessons { get; set; }
         public DbSet<LessonProgress> LessonProgresses { get; set; }
+        public DbSet<LessonContent> LessonContents { get; set; }
+        public DbSet<LessonType> LessonTypes { get; set; }
         public DbSet<Assignment> Assignments { get; set; }
         public DbSet<AssignmentSubmission> AssignmentSubmissions { get; set; }
 
@@ -26,12 +29,8 @@ namespace Engineering_Hub.models.context
 
         public DbSet<InteractiveActivity> InteractiveActivities { get; set; }
         public DbSet<InteractiveBooking> InteractiveBookings { get; set; }
-
-        public DbSet<TrackPackage> TrackPackages { get; set; }
-        public DbSet<TrackPackageBooking> TrackPackageBookings { get; set; }
-        public DbSet<TrackPackageWorkshop> TrackPackageWorkshops { get; set; }
-
-        public DbSet<TrackPackageInteractive> TrackPackageInteractives { get; set; }
+        public DbSet<CoachingConversation> CoachingConversations { get; set; }
+        public DbSet<CoachingMessage> CoachingMessages { get; set; }
         public DbSet<Certificate> Certificates { get; set; }
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -68,9 +67,6 @@ namespace Engineering_Hub.models.context
                 .Property(x => x.Price)
                 .HasPrecision(18, 2);
 
-            builder.Entity<TrackPackage>()
-                .Property(x => x.Price)
-                .HasPrecision(18, 2);
 
             // LessonProgress relationships
             builder.Entity<LessonProgress>()
@@ -86,43 +82,69 @@ namespace Engineering_Hub.models.context
             builder.Entity<LessonProgress>()
                 .HasIndex(x => new { x.StudentId, x.LessonId })
                 .IsUnique();
+            // TrackEnrollment
+            builder.Entity<TrackEnrollment>()
+                .HasIndex(x => new { x.StudentId, x.TrackId })
+                .IsUnique();
 
-            // TrackPackageWorkshop
-            builder.Entity<TrackPackageWorkshop>()
-                .HasKey(x => new
-                {
-                    x.TrackPackageId,
-                    x.WorkshopId
-                });
+        
+            // =========================
+            // Lesson Content
+            // =========================
 
-            builder.Entity<TrackPackageWorkshop>()
-               .HasOne(x => x.TrackPackage)
-               .WithMany(x => x.TrackPackageWorkshops)
-               .HasForeignKey(x => x.TrackPackageId)
-               .OnDelete(DeleteBehavior.Restrict);
+            builder.Entity<LessonContent>()
+                .HasOne(x => x.Lesson)
+                .WithMany(x => x.LessonContents)
+                .HasForeignKey(x => x.LessonId)
+                .OnDelete(DeleteBehavior.Cascade);
 
-            builder.Entity<TrackPackageWorkshop>()
-                .HasOne(x => x.Workshop)
-                .WithMany()
-                .HasForeignKey(x => x.WorkshopId);
-
-            // TrackPackageInteractive
-            builder.Entity<TrackPackageInteractive>()
-                .HasKey(x => new
-                {
-                    x.TrackPackageId,
-                    x.InteractiveActivityId
-                });
-            builder.Entity<TrackPackageInteractive>()
-                .HasOne(x => x.TrackPackage)
-                .WithMany(x => x.TrackPackageInteractives)
-                .HasForeignKey(x => x.TrackPackageId)
+            builder.Entity<LessonContent>()
+                .HasOne(x => x.LessonType)
+                .WithMany(x => x.LessonContents)
+                .HasForeignKey(x => x.LessonTypeId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            builder.Entity<TrackPackageInteractive>()
+            builder.Entity<LessonContent>()
+                .HasOne(x => x.Workshop)
+                .WithMany()
+                .HasForeignKey(x => x.WorkshopId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<LessonContent>()
                 .HasOne(x => x.InteractiveActivity)
                 .WithMany()
-                .HasForeignKey(x => x.InteractiveActivityId);
+                .HasForeignKey(x => x.InteractiveActivityId)
+                .OnDelete(DeleteBehavior.Restrict);
+            builder.Entity<LessonType>().HasData(
+                   new LessonType { Id = 1, Name = "Video" },
+                   new LessonType { Id = 2, Name = "PDF" },
+                   new LessonType { Id = 3, Name = "PowerPoint" },
+                   new LessonType { Id = 4, Name = "Interactive" },
+                   new LessonType { Id = 5, Name = "Workshop" } );
+
+            builder.Entity<CoachingConversation>()
+            .HasOne(c => c.Student)
+            .WithMany()
+            .HasForeignKey(c => c.StudentId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<CoachingConversation>()
+                .HasOne(c => c.Track)
+                .WithMany()
+                .HasForeignKey(c => c.TrackId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<CoachingMessage>()
+                .HasOne(m => m.Conversation)
+                .WithMany()
+                .HasForeignKey(m => m.ConversationId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<CoachingMessage>()
+                .HasOne(m => m.Sender)
+                .WithMany()
+                .HasForeignKey(m => m.SenderId)
+                .OnDelete(DeleteBehavior.Restrict);
         }
     }
-    }
+ }

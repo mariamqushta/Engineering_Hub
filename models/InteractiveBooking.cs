@@ -15,7 +15,7 @@ namespace Engineering_Hub.models
 
         public SessionStatus Status { get; set; }
 
-
+        public BookingSource Source { get; set; }
         // Relationships
 
         public ApplicationUser User { get; set; }

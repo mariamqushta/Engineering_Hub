@@ -1,4 +1,5 @@
 ﻿using Engineering_Hub.DTO;
+using Engineering_Hub.DTO.LessonDTOs;
 using Engineering_Hub.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -93,7 +94,7 @@ namespace Engineering_Hub.Controllers
         [HttpPost]
         [Authorize(Roles = "Instructor")]
         public async Task<IActionResult> CreateLesson(
-            LessonDTO dto)
+            CreateLessonDto dto)
         {
             var instructorId =
                 User.FindFirstValue(ClaimTypes.NameIdentifier);

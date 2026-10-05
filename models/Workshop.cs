@@ -31,6 +31,6 @@ namespace Engineering_Hub.models
 
         public Track Track { get; set; }
 
-        public ICollection<WorkshopBooking> Bookings { get; set; }
+        public ICollection<WorkshopBooking> Bookings { get; set; } = new List<WorkshopBooking>();
     }
 }

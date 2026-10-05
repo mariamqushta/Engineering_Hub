@@ -207,6 +207,67 @@ namespace Engineering_Hub.Migrations
                     b.ToTable("Certificates");
                 });
 
+            modelBuilder.Entity("Engineering_Hub.models.CoachingConversation", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("StudentId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<int>("TrackId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StudentId");
+
+                    b.HasIndex("TrackId");
+
+                    b.ToTable("CoachingConversations");
+                });
+
+            modelBuilder.Entity("Engineering_Hub.models.CoachingMessage", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ConversationId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsRead")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("SenderId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("SentAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ConversationId");
+
+                    b.HasIndex("SenderId");
+
+                    b.ToTable("CoachingMessages");
+                });
+
             modelBuilder.Entity("Engineering_Hub.models.InteractiveActivity", b =>
                 {
                     b.Property<int>("Id")
@@ -268,6 +329,9 @@ namespace Engineering_Hub.Migrations
                     b.Property<int>("InteractiveActivityId")
                         .HasColumnType("int");
 
+                    b.Property<int>("Source")
+                        .HasColumnType("int");
+
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
@@ -292,17 +356,11 @@ namespace Engineering_Hub.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("ContentUrl")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Description")
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("LessonType")
-                        .HasColumnType("int");
 
                     b.Property<int>("Order")
                         .HasColumnType("int");
@@ -322,6 +380,57 @@ namespace Engineering_Hub.Migrations
                     b.HasIndex("TrackId");
 
                     b.ToTable("Lessons");
+                });
+
+            modelBuilder.Entity("Engineering_Hub.models.LessonContent", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ContentType")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ContentUrl")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<long?>("FileSize")
+                        .HasColumnType("bigint");
+
+                    b.Property<int?>("InteractiveActivityId")
+                        .HasColumnType("int");
+
+                    b.Property<bool?>("IsFree")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("LessonId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("LessonTypeId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("OriginalFileName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("StoredFileName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("WorkshopId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InteractiveActivityId");
+
+                    b.HasIndex("LessonId");
+
+                    b.HasIndex("LessonTypeId");
+
+                    b.HasIndex("WorkshopId");
+
+                    b.ToTable("LessonContents");
                 });
 
             modelBuilder.Entity("Engineering_Hub.models.LessonProgress", b =>
@@ -353,6 +462,50 @@ namespace Engineering_Hub.Migrations
                         .IsUnique();
 
                     b.ToTable("LessonProgresses");
+                });
+
+            modelBuilder.Entity("Engineering_Hub.models.LessonType", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("LessonTypes");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Name = "Video"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            Name = "PDF"
+                        },
+                        new
+                        {
+                            Id = 3,
+                            Name = "PowerPoint"
+                        },
+                        new
+                        {
+                            Id = 4,
+                            Name = "Interactive"
+                        },
+                        new
+                        {
+                            Id = 5,
+                            Name = "Workshop"
+                        });
                 });
 
             modelBuilder.Entity("Engineering_Hub.models.RefreshToken", b =>
@@ -425,6 +578,9 @@ namespace Engineering_Hub.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<int>("BookingType")
+                        .HasColumnType("int");
+
                     b.Property<DateTime?>("CompletedAt")
                         .HasColumnType("datetime2");
 
@@ -443,9 +599,10 @@ namespace Engineering_Hub.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("StudentId");
-
                     b.HasIndex("TrackId");
+
+                    b.HasIndex("StudentId", "TrackId")
+                        .IsUnique();
 
                     b.ToTable("TrackEnrollments");
                 });
@@ -463,95 +620,6 @@ namespace Engineering_Hub.Migrations
                     b.HasIndex("TrackId");
 
                     b.ToTable("TrackInstructors");
-                });
-
-            modelBuilder.Entity("Engineering_Hub.models.TrackPackage", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Description")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<decimal>("Price")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<int>("TrackId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("TrackId");
-
-                    b.ToTable("TrackPackages");
-                });
-
-            modelBuilder.Entity("Engineering_Hub.models.TrackPackageBooking", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("BookedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("int");
-
-                    b.Property<int>("TrackPackageId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("TrackPackageId");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("TrackPackageBookings");
-                });
-
-            modelBuilder.Entity("Engineering_Hub.models.TrackPackageInteractive", b =>
-                {
-                    b.Property<int>("TrackPackageId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("InteractiveActivityId")
-                        .HasColumnType("int");
-
-                    b.HasKey("TrackPackageId", "InteractiveActivityId");
-
-                    b.HasIndex("InteractiveActivityId");
-
-                    b.ToTable("TrackPackageInteractives");
-                });
-
-            modelBuilder.Entity("Engineering_Hub.models.TrackPackageWorkshop", b =>
-                {
-                    b.Property<int>("TrackPackageId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("WorkshopId")
-                        .HasColumnType("int");
-
-                    b.HasKey("TrackPackageId", "WorkshopId");
-
-                    b.HasIndex("WorkshopId");
-
-                    b.ToTable("TrackPackageWorkshops");
                 });
 
             modelBuilder.Entity("Engineering_Hub.models.Workshop", b =>
@@ -612,6 +680,9 @@ namespace Engineering_Hub.Migrations
 
                     b.Property<DateTime>("BookedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<int>("Source")
+                        .HasColumnType("int");
 
                     b.Property<int>("Status")
                         .HasColumnType("int");
@@ -814,6 +885,44 @@ namespace Engineering_Hub.Migrations
                     b.Navigation("Track");
                 });
 
+            modelBuilder.Entity("Engineering_Hub.models.CoachingConversation", b =>
+                {
+                    b.HasOne("Engineering_Hub.models.ApplicationUser", "Student")
+                        .WithMany()
+                        .HasForeignKey("StudentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Engineering_Hub.models.Track", "Track")
+                        .WithMany()
+                        .HasForeignKey("TrackId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Student");
+
+                    b.Navigation("Track");
+                });
+
+            modelBuilder.Entity("Engineering_Hub.models.CoachingMessage", b =>
+                {
+                    b.HasOne("Engineering_Hub.models.CoachingConversation", "Conversation")
+                        .WithMany()
+                        .HasForeignKey("ConversationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Engineering_Hub.models.ApplicationUser", "Sender")
+                        .WithMany()
+                        .HasForeignKey("SenderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Conversation");
+
+                    b.Navigation("Sender");
+                });
+
             modelBuilder.Entity("Engineering_Hub.models.InteractiveActivity", b =>
                 {
                     b.HasOne("Engineering_Hub.models.Track", "Track")
@@ -853,6 +962,39 @@ namespace Engineering_Hub.Migrations
                         .IsRequired();
 
                     b.Navigation("Track");
+                });
+
+            modelBuilder.Entity("Engineering_Hub.models.LessonContent", b =>
+                {
+                    b.HasOne("Engineering_Hub.models.InteractiveActivity", "InteractiveActivity")
+                        .WithMany()
+                        .HasForeignKey("InteractiveActivityId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Engineering_Hub.models.Lesson", "Lesson")
+                        .WithMany("LessonContents")
+                        .HasForeignKey("LessonId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Engineering_Hub.models.LessonType", "LessonType")
+                        .WithMany("LessonContents")
+                        .HasForeignKey("LessonTypeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Engineering_Hub.models.Workshop", "Workshop")
+                        .WithMany()
+                        .HasForeignKey("WorkshopId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("InteractiveActivity");
+
+                    b.Navigation("Lesson");
+
+                    b.Navigation("LessonType");
+
+                    b.Navigation("Workshop");
                 });
 
             modelBuilder.Entity("Engineering_Hub.models.LessonProgress", b =>
@@ -921,74 +1063,6 @@ namespace Engineering_Hub.Migrations
                     b.Navigation("Track");
 
                     b.Navigation("User");
-                });
-
-            modelBuilder.Entity("Engineering_Hub.models.TrackPackage", b =>
-                {
-                    b.HasOne("Engineering_Hub.models.Track", "Track")
-                        .WithMany("TrackPackages")
-                        .HasForeignKey("TrackId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Track");
-                });
-
-            modelBuilder.Entity("Engineering_Hub.models.TrackPackageBooking", b =>
-                {
-                    b.HasOne("Engineering_Hub.models.TrackPackage", "TrackPackage")
-                        .WithMany("Bookings")
-                        .HasForeignKey("TrackPackageId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Engineering_Hub.models.ApplicationUser", "User")
-                        .WithMany("TrackPackageBookings")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("TrackPackage");
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("Engineering_Hub.models.TrackPackageInteractive", b =>
-                {
-                    b.HasOne("Engineering_Hub.models.InteractiveActivity", "InteractiveActivity")
-                        .WithMany()
-                        .HasForeignKey("InteractiveActivityId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Engineering_Hub.models.TrackPackage", "TrackPackage")
-                        .WithMany("TrackPackageInteractives")
-                        .HasForeignKey("TrackPackageId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("InteractiveActivity");
-
-                    b.Navigation("TrackPackage");
-                });
-
-            modelBuilder.Entity("Engineering_Hub.models.TrackPackageWorkshop", b =>
-                {
-                    b.HasOne("Engineering_Hub.models.TrackPackage", "TrackPackage")
-                        .WithMany("TrackPackageWorkshops")
-                        .HasForeignKey("TrackPackageId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("Engineering_Hub.models.Workshop", "Workshop")
-                        .WithMany()
-                        .HasForeignKey("WorkshopId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("TrackPackage");
-
-                    b.Navigation("Workshop");
                 });
 
             modelBuilder.Entity("Engineering_Hub.models.Workshop", b =>
@@ -1086,8 +1160,6 @@ namespace Engineering_Hub.Migrations
 
                     b.Navigation("TrackInstructors");
 
-                    b.Navigation("TrackPackageBookings");
-
                     b.Navigation("WorkshopBookings");
                 });
 
@@ -1105,7 +1177,14 @@ namespace Engineering_Hub.Migrations
                 {
                     b.Navigation("Assignments");
 
+                    b.Navigation("LessonContents");
+
                     b.Navigation("LessonProgresses");
+                });
+
+            modelBuilder.Entity("Engineering_Hub.models.LessonType", b =>
+                {
+                    b.Navigation("LessonContents");
                 });
 
             modelBuilder.Entity("Engineering_Hub.models.Track", b =>
@@ -1120,18 +1199,7 @@ namespace Engineering_Hub.Migrations
 
                     b.Navigation("TrackInstructors");
 
-                    b.Navigation("TrackPackages");
-
                     b.Navigation("Workshops");
-                });
-
-            modelBuilder.Entity("Engineering_Hub.models.TrackPackage", b =>
-                {
-                    b.Navigation("Bookings");
-
-                    b.Navigation("TrackPackageInteractives");
-
-                    b.Navigation("TrackPackageWorkshops");
                 });
 
             modelBuilder.Entity("Engineering_Hub.models.Workshop", b =>

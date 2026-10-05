@@ -1,30 +1,39 @@
-﻿using Engineering_Hub.models;
+﻿
+using Engineering_Hub.models;
+using Engineering_Hub.UnitOfWork;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
-using Engineering_Hub.UnitOfWork;
 
 namespace Engineering_Hub.Services
 {
     public class LessonCompletionService : ILessonCompletionService
     {
         private readonly UnitWork _unitOfWork;
+        private readonly ITrackCompletionService _trackCompletionService;
 
-        public LessonCompletionService(UnitWork unitOfWork)
+        public LessonCompletionService(
+            UnitWork unitWork,
+            ITrackCompletionService trackCompletionService)
         {
-            _unitOfWork = unitOfWork;
+            _unitOfWork = unitWork;
+            _trackCompletionService = trackCompletionService;
         }
 
         public async Task<(bool Success, string Message)> CompleteLessonAsync(
-    int lessonId,
-    string studentId)
+            int lessonId,
+            string studentId)
         {
             // 1. Find the lesson
-            var lesson = _unitOfWork.Lessonrepo.GetById(lessonId);
+            var lesson = _unitOfWork.Lessonrepo
+                .GetById(lessonId);
 
             if (lesson == null)
             {
-                return (false, "Lesson not found.");
+                return (
+                    false,
+                    "Lesson not found."
+                );
             }
 
             // 2. Check if student is enrolled in the Track
@@ -37,7 +46,10 @@ namespace Engineering_Hub.Services
 
             if (enrollment == null)
             {
-                return (false, "You are not enrolled in this Track.");
+                return (
+                    false,
+                    "You are not enrolled in this Track."
+                );
             }
 
             // 3. Check previous lesson
@@ -51,15 +63,19 @@ namespace Engineering_Hub.Services
 
                 if (previousLesson == null)
                 {
-                    return (false, "Previous lesson not found.");
+                    return (
+                        false,
+                        "Previous lesson not found."
+                    );
                 }
 
-                var previousProgress = _unitOfWork.LessonProgressrepo
-                    .GetByCondition(p =>
-                        p.StudentId == studentId &&
-                        p.LessonId == previousLesson.Id &&
-                        p.IsCompleted)
-                    .FirstOrDefault();
+                var previousProgress =
+                    _unitOfWork.LessonProgressrepo
+                        .GetByCondition(p =>
+                            p.StudentId == studentId &&
+                            p.LessonId == previousLesson.Id &&
+                            p.IsCompleted)
+                        .FirstOrDefault();
 
                 if (previousProgress == null)
                 {
@@ -70,23 +86,59 @@ namespace Engineering_Hub.Services
                 }
             }
 
-            // 4. Find current lesson progress
+            // 4. Check assignments
+            var assignments =
+                _unitOfWork.Assignmentrepo
+                    .GetByCondition(a =>
+                        a.LessonId == lessonId);
+
+            // All assignments must be submitted and graded.
+            foreach (var assignment in assignments)
+            {
+                var submission =
+                    _unitOfWork.AssignmentSubmissionrepo
+                        .GetByCondition(s =>
+                            s.AssignmentId == assignment.Id &&
+                            s.StudentId == studentId)
+                        .FirstOrDefault();
+
+                if (submission == null)
+                {
+                    return (
+                        false,
+                        "You must submit all assignments before completing this lesson."
+                    );
+                }
+
+                if (submission.Grade == null)
+                {
+                    return (
+                        false,
+                        "All assignments must be graded before completing this lesson."
+                    );
+                }
+            }
+
+            // 5. Find current lesson progress
             var progress = _unitOfWork.LessonProgressrepo
                 .GetByCondition(p =>
                     p.StudentId == studentId &&
                     p.LessonId == lessonId)
                 .FirstOrDefault();
 
-            // 5. Create or update progress
+            // 6. Create or update progress
             if (progress != null)
             {
                 if (progress.IsCompleted)
                 {
-                    return (false, "This lesson is already completed.");
+                    return (
+                        false,
+                        "This lesson is already completed."
+                    );
                 }
 
                 progress.IsCompleted = true;
-                progress.CompletedAt = DateTime.UtcNow;
+                progress.CompletedAt = System.DateTime.UtcNow;
 
                 _unitOfWork.LessonProgressrepo.Edit(progress);
             }
@@ -97,39 +149,24 @@ namespace Engineering_Hub.Services
                     StudentId = studentId,
                     LessonId = lessonId,
                     IsCompleted = true,
-                    CompletedAt = DateTime.UtcNow
+                    CompletedAt = System.DateTime.UtcNow
                 };
 
                 _unitOfWork.LessonProgressrepo.add(progress);
             }
 
-            // 6. Save
-          
+            // 7. Save lesson progress
             await _unitOfWork.SaveAsync();
 
-            // Check if all lessons are completed
-            var allLessons = _unitOfWork.Lessonrepo
-                .GetByCondition(l => l.TrackId == lesson.TrackId);
+            // 8. Check Track completion
+            await _trackCompletionService.CheckAndCompleteTrackAsync(
+                lesson.TrackId,
+                studentId);
 
-            var completedLessons = _unitOfWork.LessonProgressrepo
-                .GetByCondition(p =>
-                    p.StudentId == studentId &&
-                    p.IsCompleted);
-
-            bool allLessonsCompleted = allLessons
-                .All(l => completedLessons.Any(p => p.LessonId == l.Id));
-
-            if (allLessonsCompleted)
-            {
-                enrollment.Status = SessionStatus.Completed;
-                enrollment.CompletedAt = DateTime.UtcNow;
-
-                _unitOfWork.TrackEnrollmentrepo.Edit(enrollment);
-
-                await _unitOfWork.SaveAsync();
-            }
-
-            return (true, "Lesson completed successfully.");
+            return (
+                true,
+                "Lesson completed successfully."
+            );
         }
     }
 }

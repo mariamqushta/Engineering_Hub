@@ -18,13 +18,16 @@ namespace Engineering_Hub.UnitOfWork
         GenericRepository<InteractiveActivity> _interactiveActivityRepo;
         GenericRepository<InteractiveBooking> _interactiveBookingRepo;
 
-        GenericRepository<TrackPackage> _trackPackageRepo;
-        GenericRepository<TrackPackageBooking> _trackPackageBookingRepo;
-        GenericRepository<TrackPackageWorkshop> _trackPackageWorkshopRepo;
-        GenericRepository<TrackPackageInteractive> _trackPackageInteractiveRepo;
+
         GenericRepository<TrackInstructor> _trackInstructorRepo;
 
-
+        GenericRepository<LessonContent> _lessonContentRepo;
+        GenericRepository<LessonType> _lessonTypeRepo;
+        GenericRepository<Assignment> _assignmentRepo;
+        GenericRepository<AssignmentSubmission> _assignmentSubmissionRepo;
+        GenericRepository<CoachingConversation> _coachingConversationRepo;
+        GenericRepository<CoachingMessage> _coachingMessageRepo;
+        private GenericRepository<Certificate> _certificateRepo;
         public UnitWork(EngineeringHubContext context)
         {
             _context = context;
@@ -82,6 +85,33 @@ namespace Engineering_Hub.UnitOfWork
                 return _lessonProgressRepo;
             }
         }
+        public GenericRepository<Assignment> Assignmentrepo
+        {
+            get
+            {
+                if (_assignmentRepo == null)
+                {
+                    _assignmentRepo =
+                        new GenericRepository<Assignment>(_context);
+                }
+
+                return _assignmentRepo;
+            }
+        }
+
+        public GenericRepository<AssignmentSubmission> AssignmentSubmissionrepo
+        {
+            get
+            {
+                if (_assignmentSubmissionRepo == null)
+                {
+                    _assignmentSubmissionRepo =
+                        new GenericRepository<AssignmentSubmission>(_context);
+                }
+
+                return _assignmentSubmissionRepo;
+            }
+        }
 
         public GenericRepository<Workshop> Workshoprepo
         {
@@ -137,36 +167,7 @@ namespace Engineering_Hub.UnitOfWork
                 return _interactiveBookingRepo;
             }
         }
-        public GenericRepository<TrackPackage> TrackPackagerepo {
-            get { 
-                if (_trackPackageRepo == null) {
-                    _trackPackageRepo = new GenericRepository<TrackPackage>(_context);
-                } 
-                return _trackPackageRepo; 
-            } 
-        }
-        public GenericRepository<TrackPackageBooking> TrackPackageBookingrepo {
-            get { 
-                if (_trackPackageBookingRepo == null) {
-                    _trackPackageBookingRepo = new GenericRepository<TrackPackageBooking>(_context);
-                } 
-                return _trackPackageBookingRepo; 
-            } 
-        }
-        public GenericRepository<TrackPackageWorkshop> TrackPackageWorkshoprepo { 
-            get { 
-                if (_trackPackageWorkshopRepo == null) { 
-                    _trackPackageWorkshopRepo = new GenericRepository<TrackPackageWorkshop>(_context); 
-                } return _trackPackageWorkshopRepo;
-            } 
-        }
-        public GenericRepository<TrackPackageInteractive> TrackPackageInteractiverepo { 
-            get {
-                if (_trackPackageInteractiveRepo == null) { 
-                    _trackPackageInteractiveRepo = new GenericRepository<TrackPackageInteractive>(_context);
-                } return _trackPackageInteractiveRepo; 
-            } 
-        }
+
         public GenericRepository<TrackInstructor> TrackInstructorrepo
         {
             get
@@ -179,6 +180,76 @@ namespace Engineering_Hub.UnitOfWork
 
                 return _trackInstructorRepo;
             }
+        }
+        public GenericRepository<LessonContent> LessonContentrepo
+        {
+            get
+            {
+                if (_lessonContentRepo == null)
+                {
+                    _lessonContentRepo =
+                        new GenericRepository<LessonContent>(_context);
+                }
+
+                return _lessonContentRepo;
+            }
+        }
+        public GenericRepository<LessonType> LessonTyperepo
+        {
+            get
+            {
+                if (_lessonTypeRepo == null)
+                {
+                    _lessonTypeRepo =
+                        new GenericRepository<LessonType>(_context);
+                }
+
+                return _lessonTypeRepo;
+            }
+        }
+        public GenericRepository<CoachingConversation> CoachingConversationrepo
+        {
+            get
+            {
+                if (_coachingConversationRepo == null)
+                {
+                    _coachingConversationRepo =
+                        new GenericRepository<CoachingConversation>(_context);
+                }
+
+                return _coachingConversationRepo;
+            }
+        }
+        public GenericRepository<CoachingMessage> CoachingMessagerepo
+        {
+            get
+            {
+                if (_coachingMessageRepo == null)
+                {
+                    _coachingMessageRepo =
+                        new GenericRepository<CoachingMessage>(_context);
+                }
+
+                return _coachingMessageRepo;
+            }
+        }
+
+        public GenericRepository<Certificate> Certificaterepo
+        {
+            get
+            {
+                if (_certificateRepo == null)
+                {
+                    _certificateRepo =
+                        new GenericRepository<Certificate>(_context);
+                }
+
+                return _certificateRepo;
+            }
+        }
+        public void DeleteTrackInstructor(TrackInstructor trackInstructor)
+        {
+            _context.TrackInstructors.Remove(trackInstructor);
         }
         public void Save()
         {

@@ -29,7 +29,6 @@ namespace Engineering_Hub.models
 
         public ICollection<InteractiveBooking> InteractiveBookings { get; set; }
 
-        public ICollection<TrackPackageBooking> TrackPackageBookings { get; set; }
 
         public ICollection<Certificate> Certificates { get; set; }
 

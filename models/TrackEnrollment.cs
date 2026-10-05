@@ -16,7 +16,7 @@ namespace Engineering_Hub.models
         public SessionStatus Status { get; set; }
 
         public DateTime? CompletedAt { get; set; }
-
+        public TrackBookingType BookingType { get; set; }
 
         // Navigation properties
 

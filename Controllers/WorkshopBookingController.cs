@@ -40,7 +40,7 @@ namespace Engineering_Hub.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = "Instructor")]
+        [Authorize]
         public async Task<IActionResult> BookWorkshop(
             WorkshopBookingDto dto)
         {

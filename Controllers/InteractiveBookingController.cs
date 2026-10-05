@@ -9,7 +9,7 @@ namespace Engineering_Hub.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize(Roles = "Student")]
+    [Authorize]
     public class InteractiveBookingController : ControllerBase
     {
         private readonly IInteractiveBookingService _bookingService;

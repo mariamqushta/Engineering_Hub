@@ -24,6 +24,6 @@ namespace Engineering_Hub.models
 
         public Lesson Lesson { get; set; }
 
-        public ICollection<AssignmentSubmission> Submissions { get; set; }
+        public ICollection<AssignmentSubmission> Submissions { get; set; } = new List<AssignmentSubmission>();
     }
 }

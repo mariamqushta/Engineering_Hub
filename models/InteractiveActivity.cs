@@ -29,8 +29,9 @@ namespace Engineering_Hub.models
 
         // Relationships
 
+
         public Track Track { get; set; }
 
-        public ICollection<InteractiveBooking> Bookings { get; set; }
+        public ICollection<InteractiveBooking> Bookings { get; set; } = new List<InteractiveBooking>();
     }
 }

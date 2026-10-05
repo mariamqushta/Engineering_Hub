@@ -2,7 +2,6 @@
 using Engineering_Hub.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Security.Claims;
 using System.Threading.Tasks;
 
 namespace Engineering_Hub.Controllers
@@ -18,30 +17,25 @@ namespace Engineering_Hub.Controllers
             _trackService = trackService;
         }
 
-        // CREATE
+        // =========================
+        // CREATE TRACK
+        // Admin only
+        // =========================
         [HttpPost]
-        [Authorize(Roles = "Instructor")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> CreateTrack(
             TrackDTO dto)
         {
-            var instructorId =
-                User.FindFirstValue(
-                    ClaimTypes.NameIdentifier);
-
-            if (instructorId == null)
-            {
-                return Unauthorized();
-            }
-
             var track =
-                await _trackService.CreateTrackAsync(
-                    dto,
-                    instructorId);
+                await _trackService.CreateTrackAsync(dto);
 
             return Ok(track);
         }
 
-        // GET ALL
+        // =========================
+        // GET ALL TRACKS
+        // Public
+        // =========================
         [HttpGet]
         [AllowAnonymous]
         public async Task<IActionResult> GetAllTracks()
@@ -52,7 +46,10 @@ namespace Engineering_Hub.Controllers
             return Ok(tracks);
         }
 
-        // GET BY ID
+        // =========================
+        // GET TRACK BY ID
+        // Public
+        // =========================
         [HttpGet("{id}")]
         [AllowAnonymous]
         public async Task<IActionResult> GetTrackById(
@@ -69,27 +66,20 @@ namespace Engineering_Hub.Controllers
             return Ok(track);
         }
 
-        // UPDATE
+        // =========================
+        // UPDATE TRACK
+        // Admin only
+        // =========================
         [HttpPut("{id}")]
-        [Authorize(Roles = "Instructor")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> UpdateTrack(
             int id,
             TrackDTO dto)
         {
-            var instructorId =
-                User.FindFirstValue(
-                    ClaimTypes.NameIdentifier);
-
-            if (instructorId == null)
-            {
-                return Unauthorized();
-            }
-
             var result =
                 await _trackService.UpdateTrackAsync(
                     id,
-                    dto,
-                    instructorId);
+                    dto);
 
             if (!result.Success)
             {
@@ -99,25 +89,59 @@ namespace Engineering_Hub.Controllers
             return Ok(result.Message);
         }
 
-        // DELETE / DEACTIVATE
+        // =========================
+        // DEACTIVATE TRACK
+        // Admin only
+        // =========================
         [HttpDelete("{id}")]
-        [Authorize(Roles = "Instructor")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeleteTrack(
             int id)
         {
-            var instructorId =
-                User.FindFirstValue(
-                    ClaimTypes.NameIdentifier);
+            var result =
+                await _trackService.DeleteTrackAsync(id);
 
-            if (instructorId == null)
+            if (!result.Success)
             {
-                return Unauthorized();
+                return BadRequest(result.Message);
             }
 
+            return Ok(result.Message);
+        }
+
+        // =========================
+        // ASSIGN INSTRUCTOR
+        // Admin only
+        // =========================
+        [HttpPost("{trackId}/instructors/{username}")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> AssignInstructor(
+       int trackId,
+       string username)
+        {
             var result =
-                await _trackService.DeleteTrackAsync(
-                    id,
-                    instructorId);
+                await _trackService.AssignInstructorAsync(
+                    trackId,
+                    username);
+
+            if (!result.Success)
+            {
+                return BadRequest(result.Message);
+            }
+
+            return Ok(result.Message);
+        }
+
+        [HttpDelete("{trackId}/instructors/{username}")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> RemoveInstructor(
+    int trackId,
+    string username)
+        {
+            var result =
+                await _trackService.RemoveInstructorAsync(
+                    trackId,
+                    username);
 
             if (!result.Success)
             {

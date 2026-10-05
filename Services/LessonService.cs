@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using Engineering_Hub.DTO;
 using Engineering_Hub.DTO.Lesson;
+using Engineering_Hub.DTO.LessonDTOs;
 using Engineering_Hub.models;
 using Engineering_Hub.UnitOfWork;
 using System;
@@ -14,42 +15,41 @@ namespace Engineering_Hub.Services
     {
         private readonly UnitWork _unitOfWork;
         private readonly IMapper _mapper;
+        private readonly IInstructorAuthorizationService _instructorAuthorization;
 
         public LessonService(
-            UnitWork unitWork,
-            IMapper mapper)
+      UnitWork unitWork,
+      IMapper mapper,
+      IInstructorAuthorizationService instructorAuthorization)
         {
             _unitOfWork = unitWork;
             _mapper = mapper;
+            _instructorAuthorization = instructorAuthorization;
         }
 
         public async Task<LessonResponseDTO?> CreateLessonAsync(
-            LessonDTO dto,
-            string instructorId)
+    CreateLessonDto dto,
+    string instructorId)
         {
             // 1. Check Track
-            var track = _unitOfWork.Trackrepo
-                .GetById(dto.TrackId);
-
-            if (track == null || !track.IsActive)
-            {
-                return null;
-            }
-
-            // 2. Check Instructor is assigned to Track
-            var instructor = _unitOfWork.TrackInstructorrepo
-                .GetByCondition(x =>
-                    x.TrackId == dto.TrackId &&
-                    x.UserId == instructorId)
-                .FirstOrDefault();
-
-            if (instructor == null)
-            {
-                return null;
-            }
+            if (!_instructorAuthorization.CanManageTrack(
+                dto.TrackId,
+                instructorId))
+                    {
+                        return null;
+                    }
 
             // 3. Map DTO → Entity
             var lesson = _mapper.Map<Lesson>(dto);
+
+            var lastLesson = _unitOfWork.Lessonrepo
+                .GetByCondition(x => x.TrackId == dto.TrackId)
+                .OrderByDescending(x => x.Order)
+                .FirstOrDefault();
+
+            lesson.Order = lastLesson == null
+                ? 1
+                : lastLesson.Order + 1;
 
             lesson.CreatedAt = DateTime.UtcNow;
 
@@ -104,27 +104,11 @@ namespace Engineering_Hub.Services
             }
 
             // 2. Check Track
-            var track = _unitOfWork.Trackrepo
-                .GetById(lesson.TrackId);
-
-            if (track == null || !track.IsActive)
+            if (!_instructorAuthorization.CanManageTrack(
+         lesson.TrackId,
+         instructorId))
             {
-                return (false, "Track not found.");
-            }
-
-            // 3. Check Instructor
-            var instructor = _unitOfWork.TrackInstructorrepo
-                .GetByCondition(x =>
-                    x.TrackId == lesson.TrackId &&
-                    x.UserId == instructorId)
-                .FirstOrDefault();
-
-            if (instructor == null)
-            {
-                return (
-                    false,
-                    "You are not assigned to this Track."
-                );
+                return (false, "You are not assigned to this Track.");
             }
 
             // 4. Map updated values
@@ -154,28 +138,12 @@ namespace Engineering_Hub.Services
             }
 
             // 2. Check Track
-            var track = _unitOfWork.Trackrepo
-                .GetById(lesson.TrackId);
-
-            if (track == null || !track.IsActive)
-            {
-                return (false, "Track not found.");
-            }
-
-            // 3. Check Instructor
-            var instructor = _unitOfWork.TrackInstructorrepo
-                .GetByCondition(x =>
-                    x.TrackId == lesson.TrackId &&
-                    x.UserId == instructorId)
-                .FirstOrDefault();
-
-            if (instructor == null)
-            {
-                return (
-                    false,
-                    "You are not assigned to this Track."
-                );
-            }
+            if (!_instructorAuthorization.CanManageTrack(
+               lesson.TrackId,
+               instructorId))
+                    {
+                        return (false, "You are not assigned to this Track.");
+                    }
 
             // 4. Delete
             _unitOfWork.Lessonrepo.Delete(id);

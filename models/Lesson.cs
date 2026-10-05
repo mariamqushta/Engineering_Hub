@@ -1,13 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+
 namespace Engineering_Hub.models
 {
-    public enum LessonType
-    {
-        Video,
-        PDF,
-        PowerPoint
-    }
     public class Lesson
     {
         public int Id { get; set; }
@@ -20,10 +15,6 @@ namespace Engineering_Hub.models
 
         public int Order { get; set; }
 
-        public LessonType LessonType { get; set; }
-
-        public string? ContentUrl { get; set; }
-
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         public DateTime? UpdatedAt { get; set; }
@@ -33,7 +24,13 @@ namespace Engineering_Hub.models
 
         public Track Track { get; set; }
 
+        public ICollection<LessonContent> LessonContents { get; set; }
+            = new List<LessonContent>();
+
         public ICollection<Assignment> Assignments { get; set; }
+            = new List<Assignment>();
+
         public ICollection<LessonProgress> LessonProgresses { get; set; }
+            = new List<LessonProgress>();
     }
 }

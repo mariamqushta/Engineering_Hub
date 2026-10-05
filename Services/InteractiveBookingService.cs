@@ -14,9 +14,10 @@ namespace Engineering_Hub.Services
     {
         private readonly UnitWorkClass _unitOfWork;
         private readonly IMapper _mapper;
+
         public InteractiveBookingService(
-    UnitWorkClass unitWork,
-    IMapper mapper)
+            UnitWorkClass unitWork,
+            IMapper mapper)
         {
             _unitOfWork = unitWork;
             _mapper = mapper;
@@ -26,33 +27,20 @@ namespace Engineering_Hub.Services
             string userId,
             InteractiveBookingDto dto)
         {
-            // 1. Find Interactive Activity
             var activity = _unitOfWork.InteractiveActivityrepo
                 .GetById(dto.InteractiveActivityId);
 
             if (activity == null)
-            {
                 return (false, "Interactive activity not found.");
-            }
 
-            // 2. Check status
             if (activity.Status == SessionStatus.Cancelled)
-            {
-                return (
-                    false,
-                    "This interactive activity has been cancelled."
-                );
-            }
+                return (false, "This interactive activity has been cancelled.");
 
             if (activity.Status == SessionStatus.Finished)
-            {
-                return (
-                    false,
-                    "This interactive activity has already finished."
-                );
-            }
+                return (false, "This interactive activity has already finished.");
 
-            // 3. Check duplicate booking
+            // Check if the user already has a booking
+            // from either individual booking or package booking.
             var existingBooking = _unitOfWork.InteractiveBookingrepo
                 .GetByCondition(b =>
                     b.UserId == userId &&
@@ -61,58 +49,44 @@ namespace Engineering_Hub.Services
                 .FirstOrDefault();
 
             if (existingBooking != null)
-            {
-                return (
-                    false,
-                    "You are already booked for this interactive activity."
-                );
-            }
+                return (false, "You are already booked for this interactive activity.");
 
-            // 4. Check capacity
+            // Only individual bookings count toward capacity.
             var currentBookings = _unitOfWork.InteractiveBookingrepo
                 .GetByCondition(b =>
-                    b.InteractiveActivityId ==
-                    dto.InteractiveActivityId &&
-                    b.Status != SessionStatus.Cancelled)
+                    b.InteractiveActivityId == dto.InteractiveActivityId &&
+                    b.Status != SessionStatus.Cancelled &&
+                    b.Source == BookingSource.Individual)
                 .Count();
 
             if (currentBookings >= activity.Capacity)
-            {
-                return (
-                    false,
-                    "This interactive activity is fully booked."
-                );
-            }
+                return (false, "This interactive activity is fully booked.");
 
-            // 5. Create booking
             var booking = new InteractiveBooking
             {
                 UserId = userId,
                 InteractiveActivityId = dto.InteractiveActivityId,
                 BookedAt = DateTime.UtcNow,
-                Status = SessionStatus.Scheduled
+                Status = SessionStatus.Scheduled,
+                Source = BookingSource.Individual
             };
 
             _unitOfWork.InteractiveBookingrepo.add(booking);
 
-            // 6. Save
             await _unitOfWork.SaveAsync();
 
-            return (
-                true,
-                "Interactive activity booked successfully."
-            );
+            return (true, "Interactive activity booked successfully.");
         }
+
         public async Task<List<InteractiveBookingResponseDTO>> GetMyBookingsAsync(
-       string userId)
+            string userId)
         {
             var bookings = _unitOfWork.InteractiveBookingrepo
                 .GetByConditionWithInclude(
                     x => x.UserId == userId,
                     x => x.InteractiveActivity);
 
-            var result =
-                _mapper.Map<List<InteractiveBookingResponseDTO>>(bookings);
+            var result = _mapper.Map<List<InteractiveBookingResponseDTO>>(bookings);
 
             return result;
         }

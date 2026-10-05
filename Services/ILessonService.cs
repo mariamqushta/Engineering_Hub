@@ -1,5 +1,6 @@
 ﻿using Engineering_Hub.DTO;
 using Engineering_Hub.DTO.Lesson;
+using Engineering_Hub.DTO.LessonDTOs;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -8,7 +9,7 @@ namespace Engineering_Hub.Services
     public interface ILessonService
     {
         Task<LessonResponseDTO?> CreateLessonAsync(
-            LessonDTO dto,
+            CreateLessonDto dto,
             string instructorId);
 
         Task<List<LessonResponseDTO>> GetLessonsByTrackAsync(
