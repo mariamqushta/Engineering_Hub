@@ -20,5 +20,8 @@ namespace Engineering_Hub.Services
             GetMessagesAsync(
                 string userId,
                 int conversationId);
+
+        Task<List<InstructorConversationDto>>
+       GetInstructorConversationsAsync(string instructorId);
     }
 }

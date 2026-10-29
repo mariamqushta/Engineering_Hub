@@ -1,16 +1,22 @@
 ﻿using AutoMapper;
 using Azure;
+using Engineering_Hub.DTO.AccountDTOs;
 using Engineering_Hub.DTO.LoginDTOs;
 using Engineering_Hub.models;
 using Engineering_Hub.Repository;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
 using Microsoft.IdentityModel.Tokens;
 using System;
 using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
+using System.IO;
 using System.Linq;
 using System.Security.Claims;
 using System.Security.Cryptography;
@@ -29,13 +35,13 @@ namespace Engineering_Hub.Controllers
         private readonly GenericRepository<RefreshToken> _repo;
         private readonly IMapper _mapper;
         private readonly IPasswordHasher<ApplicationUser> _passwordHasher;
-
+        private readonly IWebHostEnvironment _environment;
         public AccountController(
             UserManager<ApplicationUser> userManager,
             RoleManager<IdentityRole> roleManager,
             IConfiguration configuration,
             GenericRepository<RefreshToken> repo,
-            IMapper mapper,
+            IMapper mapper, IWebHostEnvironment environment,
     IPasswordHasher<ApplicationUser> passwordHasher)
         {
             _userManager = userManager;
@@ -44,6 +50,7 @@ namespace Engineering_Hub.Controllers
             _repo = repo;
             _mapper = mapper;
             _passwordHasher = passwordHasher;
+            _environment = environment;
         }
         [HttpPost]
         public async Task<IActionResult> Login(logindto dto)
@@ -323,5 +330,139 @@ namespace Engineering_Hub.Controllers
                 message = "Logout successful."
             });
         }
+
+        [HttpGet("me")]
+        [Authorize]
+        public async Task<IActionResult> GetCurrentUser()
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (userId == null)
+            {
+                return Unauthorized();
+            }
+
+            var user = await _userManager.FindByIdAsync(userId);
+
+            if (user == null || !user.IsActive)
+            {
+                return Unauthorized();
+            }
+
+            var roles = await _userManager.GetRolesAsync(user);
+
+            return Ok(new
+            {
+                id = user.Id,
+                userName = user.UserName,
+                fullName = user.FullName,
+                roles = roles,
+                profileImageUrl = user.ProfileImageUrl,
+            });
+        }
+
+        [HttpPut("profile")]
+        [Authorize]
+        [Consumes("multipart/form-data")]
+        public async Task<IActionResult> UpdateProfile(
+     [FromForm] UpdateProfileDto dto)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (userId == null)
+                return Unauthorized();
+
+            var user = await _userManager.FindByIdAsync(userId);
+
+            if (user == null || !user.IsActive)
+                return Unauthorized();
+
+            if (string.IsNullOrWhiteSpace(dto.UserName))
+                return BadRequest(new { message = "Username is required." });
+
+            var trimmedUserName = dto.UserName.Trim();
+
+            var existingUser = await _userManager.FindByNameAsync(trimmedUserName);
+
+            if (existingUser != null && existingUser.Id != user.Id)
+                return BadRequest(new { message = "This username is already taken." });
+
+            string? newImagePath = null;
+
+            if (dto.ProfileImage != null && dto.ProfileImage.Length > 0)
+            {
+                const long maxFileSize = 5 * 1024 * 1024;
+
+                if (dto.ProfileImage.Length > maxFileSize)
+                    return BadRequest(new { message = "The image must be 5 MB or smaller." });
+
+                var extension = Path.GetExtension(dto.ProfileImage.FileName)
+                    .ToLowerInvariant();
+
+                var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp" };
+
+                if (!allowedExtensions.Contains(extension))
+                    return BadRequest(new
+                    {
+                        message = "Only JPG, PNG, and WebP images are allowed."
+                    });
+
+                var webRoot = _environment.WebRootPath
+                    ?? Path.Combine(_environment.ContentRootPath, "wwwroot");
+
+                var uploadsFolder = Path.Combine(webRoot, "uploads", "profiles");
+
+                Directory.CreateDirectory(uploadsFolder);
+
+                var fileName = $"{Guid.NewGuid()}{extension}";
+                var filePath = Path.Combine(uploadsFolder, fileName);
+
+                await using (var stream = new FileStream(filePath, FileMode.Create))
+                {
+                    await dto.ProfileImage.CopyToAsync(stream);
+                }
+
+                newImagePath = $"/uploads/profiles/{fileName}";
+            }
+
+            var usernameResult = await _userManager.SetUserNameAsync(
+                user, trimmedUserName);
+
+            if (!usernameResult.Succeeded)
+            {
+                return BadRequest(new
+                {
+                    message = string.Join(" ",
+                        usernameResult.Errors.Select(e => e.Description))
+                });
+            }
+
+            if (newImagePath != null)
+                user.ProfileImageUrl = newImagePath;
+            if (string.IsNullOrWhiteSpace(dto.FullName))
+            {
+                return BadRequest(new { message = "Full name is required." });
+            }
+
+            user.FullName = dto.FullName.Trim();
+            var updateResult = await _userManager.UpdateAsync(user);
+
+            if (!updateResult.Succeeded)
+            {
+                return BadRequest(new
+                {
+                    message = string.Join(" ",
+                        updateResult.Errors.Select(e => e.Description))
+                });
+            }
+
+            return Ok(new
+            {
+                userName = user.UserName,
+                fullName = user.FullName,
+                profileImageUrl = user.ProfileImageUrl
+            });
+        }
+
     }
 }

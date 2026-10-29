@@ -1,4 +1,5 @@
 ﻿using Engineering_Hub.DTO.BookingDTOs;
+using Engineering_Hub.models;
 using Engineering_Hub.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -43,8 +44,43 @@ namespace Engineering_Hub.Controllers
 
             return Ok(new
             {
-                message = result.Message
+                message = result.Message,
+                price = result.Price
             });
+        }
+
+        [HttpGet("price/{trackId}/{bookingType}")]
+        public async Task<IActionResult> GetBookingPrice(
+    int trackId,
+    TrackBookingType bookingType)
+        {
+            var result = await _bookingService
+                .GetBookingPriceAsync(trackId, bookingType);
+
+            if (!result.Success)
+            {
+                return BadRequest(new
+                {
+                    message = result.Message
+                });
+            }
+
+            return Ok(new
+            {
+                price = result.Price
+            });
+        }
+        [HttpGet("MyBookings")]
+        public async Task<IActionResult> GetMyBookings()
+        {
+            var studentId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (studentId == null)
+                return Unauthorized();
+
+            var requests = await _bookingService.GetMyRequestsAsync(studentId);
+
+            return Ok(requests);
         }
     }
 }

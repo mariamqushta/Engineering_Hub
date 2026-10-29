@@ -47,6 +47,8 @@ builder.Services.AddScoped<IFileStorageService, FileStorageService>();
 builder.Services.AddScoped<IFileValidationService, FileValidationService>();
 builder.Services.AddScoped<ILessonContentService, LessonContentService>();
 builder.Services.AddScoped<IAssignmentService, AssignmentService>();
+builder.Services.AddScoped<IQuizService, QuizService>();
+builder.Services.AddScoped<InstructorAuthorizationService>();
 builder.Services.AddScoped<
     IInstructorAuthorizationService,
     InstructorAuthorizationService>();
@@ -56,7 +58,8 @@ builder.Services.AddScoped<
 builder.Services.AddScoped<ICoachingService, CoachingService>();
 builder.Services.AddScoped<ITrackCompletionService, TrackCompletionService>();
 builder.Services.AddScoped<ICertificateService, CertificateService>();
-
+builder.Services.AddScoped<ICertificatePdfService, CertificatePdfService>();
+builder.Services.AddScoped<CalendarService>();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddDbContext<EngineeringHubContext>(options =>
                options.UseSqlServer(
@@ -67,7 +70,26 @@ builder.Services.AddAutoMapper(cfg =>
     cfg.AddProfile<MapingProfile>();
 });
 
-builder.Services.AddControllers();
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AngularPolicy", policy =>
+    {
+        policy
+            .WithOrigins("http://localhost:4200")
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials();
+    });
+});
+
+
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.ReferenceHandler =
+            System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
+    });
 builder.Services.AddOpenApi();
 builder.Services.AddSwaggerGen(options =>
 {
@@ -185,7 +207,7 @@ using (var scope = app.Services.CreateScope())
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
-
+app.UseCors("AngularPolicy");
 app.UseAuthentication();
 app.UseAuthorization();
 

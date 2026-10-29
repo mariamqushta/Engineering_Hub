@@ -1,7 +1,10 @@
 ﻿using AutoMapper;
 using Engineering_Hub.DTO;
+using Engineering_Hub.DTO;
+using Engineering_Hub.DTOs;
 using Engineering_Hub.models;
 using Engineering_Hub.UnitOfWork;
+using Microsoft.AspNetCore.Http;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,7 +16,8 @@ namespace Engineering_Hub.Services
     {
         private readonly UnitWork _unitOfWork;
         private readonly IMapper _mapper;
-
+        private readonly IFileStorageService _fileStorage;
+        private readonly IFileValidationService _fileValidation;
         private readonly IInstructorAuthorizationService
             _instructorAuthorizationService;
 
@@ -28,11 +32,14 @@ namespace Engineering_Hub.Services
             IMapper mapper,
             IInstructorAuthorizationService instructorAuthorizationService,
             ILessonCompletionService lessonCompletionService,
+            IFileStorageService fileStorage,
+            IFileValidationService fileValidation,
             ITrackCompletionService trackCompletionService)
         {
             _unitOfWork = unitWork;
             _mapper = mapper;
-
+            _fileStorage = fileStorage;
+            _fileValidation = fileValidation;
             _instructorAuthorizationService =
                 instructorAuthorizationService;
 
@@ -567,6 +574,388 @@ namespace Engineering_Hub.Services
             return _mapper.Map<
                 AssignmentSubmissionResponseDTO>(
                     submission);
+        }
+
+        public async Task<(
+    bool Success,
+    string Message,
+    AssignmentResponseDTO? Data)>
+    CreateAssignmentWithFileAsync(
+        int lessonId,
+        AssignmentCreateFormDTO dto,
+        string instructorId)
+        {
+            var lesson = _unitOfWork.Lessonrepo.GetById(lessonId);
+
+            if (lesson == null)
+            {
+                return (false, "Lesson not found.", null);
+            }
+
+            bool canManage = _instructorAuthorizationService.CanManageTrack(
+                lesson.TrackId,
+                instructorId);
+
+            if (!canManage)
+            {
+                return (false, "You are not assigned to this Track.", null);
+            }
+
+            if (string.IsNullOrWhiteSpace(dto.Title))
+            {
+                return (false, "Assignment title is required.", null);
+            }
+
+            string? storedFileName = null;
+
+            try
+            {
+                if (dto.Attachment != null)
+                {
+                    _fileValidation.ValidateFile(dto.Attachment, "Assignment");
+
+                    storedFileName = await _fileStorage.SavePrivateFileAsync(
+                        dto.Attachment,
+                        "assignments");
+                }
+
+                var assignment = new Assignment
+                {
+                    LessonId = lessonId,
+                    Title = dto.Title.Trim(),
+                    Description = dto.Description,
+                    DueDate = dto.DueDate,
+                    CreatedAt = DateTime.UtcNow,
+                    AttachmentOriginalFileName = dto.Attachment?.FileName,
+                    AttachmentStoredFileName = storedFileName,
+                    AttachmentContentType = dto.Attachment?.ContentType,
+                    AttachmentFileSize = dto.Attachment?.Length
+                };
+
+                _unitOfWork.Assignmentrepo.add(assignment);
+                await _unitOfWork.SaveAsync();
+
+                var result = _mapper.Map<AssignmentResponseDTO>(assignment);
+
+                return (true, "Assignment created successfully.", result);
+            }
+            catch (ArgumentException ex)
+            {
+                if (storedFileName != null)
+                {
+                    await _fileStorage.DeletePrivateFileAsync(
+                        storedFileName,
+                        "assignments");
+                }
+
+                return (false, ex.Message, null);
+            }
+            catch
+            {
+                if (storedFileName != null)
+                {
+                    await _fileStorage.DeletePrivateFileAsync(
+                        storedFileName,
+                        "assignments");
+                }
+
+                throw;
+            }
+        }
+        public async Task<(bool Success, string Message)>
+    SubmitAssignmentWithFileAsync(
+        int assignmentId,
+        AssignmentSubmissionFormDTO dto,
+        string studentId)
+        {
+            var assignment = _unitOfWork.Assignmentrepo.GetById(assignmentId);
+
+            if (assignment == null)
+            {
+                return (false, "Assignment not found.");
+            }
+
+            var lesson = _unitOfWork.Lessonrepo.GetById(assignment.LessonId);
+
+            if (lesson == null)
+            {
+                return (false, "Lesson not found.");
+            }
+
+            var enrollment = _unitOfWork.TrackEnrollmentrepo
+                .GetByCondition(e =>
+                    e.StudentId == studentId &&
+                    e.TrackId == lesson.TrackId &&
+                    e.Status == SessionStatus.Active)
+                .FirstOrDefault();
+
+            if (enrollment == null)
+            {
+                return (false, "You are not enrolled in this Track.");
+            }
+
+            if (lesson.Order > 1)
+            {
+                var previousLessons = _unitOfWork.Lessonrepo
+                    .GetByCondition(l =>
+                        l.TrackId == lesson.TrackId &&
+                        l.Order < lesson.Order);
+
+                foreach (var previousLesson in previousLessons)
+                {
+                    var progress = _unitOfWork.LessonProgressrepo
+                        .GetByCondition(p =>
+                            p.StudentId == studentId &&
+                            p.LessonId == previousLesson.Id &&
+                            p.IsCompleted)
+                        .FirstOrDefault();
+
+                    if (progress == null)
+                    {
+                        return (
+                            false,
+                            "You must complete the previous lessons first.");
+                    }
+                }
+            }
+
+            if (string.IsNullOrWhiteSpace(dto.Content) &&
+                (dto.File == null || dto.File.Length == 0))
+            {
+                return (
+                    false,
+                    "You must provide text or upload a file.");
+            }
+
+            string? storedFileName = null;
+
+            try
+            {
+                if (dto.File != null)
+                {
+                    _fileValidation.ValidateFile(dto.File, "Assignment");
+
+                    storedFileName = await _fileStorage.SavePrivateFileAsync(
+                        dto.File,
+                        "submissions");
+                }
+
+                var submission = new AssignmentSubmission
+                {
+                    AssignmentId = assignmentId,
+                    StudentId = studentId,
+                    Content = dto.Content,
+                    SubmittedAt = DateTime.UtcNow,
+                    OriginalFileName = dto.File?.FileName,
+                    StoredFileName = storedFileName,
+                    ContentType = dto.File?.ContentType,
+                    FileSize = dto.File?.Length
+                };
+
+                _unitOfWork.AssignmentSubmissionrepo.add(submission);
+                await _unitOfWork.SaveAsync();
+
+                var completionResult = await _lessonCompletionService
+                    .CompleteLessonAsync(lesson.Id, studentId);
+
+                if (completionResult.Success)
+                {
+                    return (
+                        true,
+                        "Assignment submitted successfully. Lesson completed.");
+                }
+
+                if (completionResult.Message ==
+                    "You must submit all assignments before completing this lesson.")
+                {
+                    return (
+                        true,
+                        "Assignment submitted successfully. Submit the remaining assignments to complete the lesson.");
+                }
+
+                if (completionResult.Message ==
+                    "All assignments must be graded before completing this lesson.")
+                {
+                    return (
+                        true,
+                        "Assignment submitted successfully. Waiting for all assignments to be graded.");
+                }
+
+                return (true, "Assignment submitted successfully.");
+            }
+            catch (ArgumentException ex)
+            {
+                if (storedFileName != null)
+                {
+                    await _fileStorage.DeletePrivateFileAsync(
+                        storedFileName,
+                        "submissions");
+                }
+
+                return (false, ex.Message);
+            }
+            catch
+            {
+                if (storedFileName != null)
+                {
+                    await _fileStorage.DeletePrivateFileAsync(
+                        storedFileName,
+                        "submissions");
+                }
+
+                throw;
+            }
+        }
+
+        public async Task<(bool Success, string Message, string? FilePath,
+    string? FileName, string? ContentType)>
+    GetAssignmentAttachmentAsync(int assignmentId, string studentId)
+        {
+            var assignment = _unitOfWork.Assignmentrepo.GetById(assignmentId);
+
+            if (assignment == null)
+                return (false, "Assignment not found.", null, null, null);
+
+            var lesson = _unitOfWork.Lessonrepo.GetById(assignment.LessonId);
+
+            if (lesson == null)
+                return (false, "Lesson not found.", null, null, null);
+
+            var enrollment = _unitOfWork.TrackEnrollmentrepo
+                .GetByCondition(e =>
+                    e.StudentId == studentId &&
+                    e.TrackId == lesson.TrackId &&
+                    e.Status == SessionStatus.Active)
+                .FirstOrDefault();
+
+            if (enrollment == null)
+                return (false, "You are not enrolled in this Track.", null, null, null);
+
+            // Enforce the same previous-lesson restriction as assignment access.
+            if (lesson.Order > 1)
+            {
+                var previousLessons = _unitOfWork.Lessonrepo
+                    .GetByCondition(l =>
+                        l.TrackId == lesson.TrackId &&
+                        l.Order < lesson.Order);
+
+                foreach (var previousLesson in previousLessons)
+                {
+                    var progress = _unitOfWork.LessonProgressrepo
+                        .GetByCondition(p =>
+                            p.StudentId == studentId &&
+                            p.LessonId == previousLesson.Id &&
+                            p.IsCompleted)
+                        .FirstOrDefault();
+
+                    if (progress == null)
+                        return (false, "Complete previous lessons first.", null, null, null);
+                }
+            }
+
+            if (string.IsNullOrWhiteSpace(assignment.AttachmentStoredFileName))
+                return (false, "This assignment has no attachment.", null, null, null);
+
+            var path = _fileStorage.GetPrivateFilePath(
+                assignment.AttachmentStoredFileName,
+                "assignments");
+
+            if (path == null)
+                return (false, "Attachment file not found.", null, null, null);
+
+            return (
+                true,
+                "Attachment found.",
+                path,
+                assignment.AttachmentOriginalFileName ?? "assignment-file",
+                assignment.AttachmentContentType ?? "application/octet-stream");
+        }
+
+        public async Task<(bool Success, string Message, string? FilePath,
+            string? FileName, string? ContentType)>
+            GetSubmissionFileAsync(
+                int submissionId,
+                string userId,
+                bool isInstructor)
+        {
+            var submission = _unitOfWork.AssignmentSubmissionrepo.GetById(submissionId);
+
+            if (submission == null)
+                return (false, "Submission not found.", null, null, null);
+
+            if (string.IsNullOrWhiteSpace(submission.StoredFileName))
+                return (false, "This submission has no uploaded file.", null, null, null);
+
+            var assignment = _unitOfWork.Assignmentrepo.GetById(submission.AssignmentId);
+
+            if (assignment == null)
+                return (false, "Assignment not found.", null, null, null);
+
+            var lesson = _unitOfWork.Lessonrepo.GetById(assignment.LessonId);
+
+            if (lesson == null)
+                return (false, "Lesson not found.", null, null, null);
+
+            if (isInstructor)
+            {
+                bool canManage = _instructorAuthorizationService.CanManageTrack(
+                    lesson.TrackId,
+                    userId);
+
+                if (!canManage)
+                    return (false, "You are not assigned to this Track.", null, null, null);
+            }
+            else
+            {
+                // Students can download only their own submissions.
+                if (submission.StudentId != userId)
+                    return (false, "You cannot access another student's submission.", null, null, null);
+
+                var enrollment = _unitOfWork.TrackEnrollmentrepo
+                    .GetByCondition(e =>
+                        e.StudentId == userId &&
+                        e.TrackId == lesson.TrackId &&
+                        e.Status == SessionStatus.Active)
+                    .FirstOrDefault();
+
+                if (enrollment == null)
+                    return (false, "You are not enrolled in this Track.", null, null, null);
+            }
+
+            var path = _fileStorage.GetPrivateFilePath(
+                submission.StoredFileName,
+                "submissions");
+
+            if (path == null)
+                return (false, "Submission file not found.", null, null, null);
+
+            return (
+                true,
+                "Submission file found.",
+                path,
+                submission.OriginalFileName ?? "submission-file",
+                submission.ContentType ?? "application/octet-stream");
+        }
+        public async Task<List<AssignmentResponseDTO>>
+           GetAssignmentsForInstructorLessonAsync(
+               int lessonId,
+               string instructorId)
+        {
+            var lesson = _unitOfWork.Lessonrepo.GetById(lessonId);
+
+            if (lesson == null)
+                return new List<AssignmentResponseDTO>();
+
+            var canManage = _instructorAuthorizationService
+           .CanManageTrack(lesson.TrackId, instructorId);
+
+            if (!canManage)
+                return new List<AssignmentResponseDTO>();
+
+            var assignments = _unitOfWork.Assignmentrepo
+                .GetByCondition(a => a.LessonId == lessonId);
+
+            return _mapper.Map<List<AssignmentResponseDTO>>(assignments);
         }
     }
 }

@@ -32,19 +32,21 @@ namespace Engineering_Hub.Controllers
         // =========================
 
         [HttpGet("{lessonId}")]
-        [Authorize(Roles = "Student")]
+        [AllowAnonymous]
         public async Task<IActionResult> GetLesson(int lessonId)
         {
-            var studentId =
-                User.FindFirstValue(ClaimTypes.NameIdentifier);
+            //var studentId =
+            //    User.FindFirstValue(ClaimTypes.NameIdentifier);
 
-            if (studentId == null)
-            {
-                return Unauthorized();
-            }
+            //if (studentId == null)
+            //{
+            //    return Unauthorized();
+            //}
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+                 ?? string.Empty;
 
             var result = await _lessonAccessService
-                .GetLessonAsync(lessonId, studentId);
+                .GetLessonAsync(lessonId, userId);
 
             if (!result.Success)
             {
@@ -130,7 +132,22 @@ namespace Engineering_Hub.Controllers
             return Ok(lessons);
         }
 
+        [HttpGet("Track/{trackId}/student")]
+        [Authorize(Roles = "Student")]
+        public async Task<IActionResult> GetStudentLessonsByTrack(int trackId)
+        {
+            var studentId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
+            if (string.IsNullOrEmpty(studentId))
+            {
+                return Unauthorized();
+            }
+
+            var lessons = await _lessonService
+                .GetLessonsByTrackForStudentAsync(trackId, studentId);
+
+            return Ok(lessons);
+        }
 
         [HttpPut("{id}")]
         [Authorize(Roles = "Instructor")]

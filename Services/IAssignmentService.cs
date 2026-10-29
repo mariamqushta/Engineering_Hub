@@ -1,4 +1,5 @@
 ﻿using Engineering_Hub.DTO;
+using Engineering_Hub.DTOs;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -36,5 +37,34 @@ namespace Engineering_Hub.Services
         Task<AssignmentSubmissionResponseDTO?> GetMySubmissionAsync(
     int assignmentId,
     string studentId);
+
+        Task<(bool Success, string Message, AssignmentResponseDTO? Data)>
+    CreateAssignmentWithFileAsync(
+        int lessonId,
+        AssignmentCreateFormDTO dto,
+        string instructorId);
+
+        Task<(bool Success, string Message)>
+            SubmitAssignmentWithFileAsync(
+                int assignmentId,
+                AssignmentSubmissionFormDTO dto,
+                string studentId);
+
+        Task<(bool Success, string Message, string? FilePath,
+      string? FileName, string? ContentType)>
+    GetAssignmentAttachmentAsync(
+        int assignmentId,
+        string studentId);
+
+        Task<(bool Success, string Message, string? FilePath,
+              string? FileName, string? ContentType)>
+            GetSubmissionFileAsync(
+                int submissionId,
+                string userId,
+                bool isInstructor);
+
+        Task<List<AssignmentResponseDTO>> GetAssignmentsForInstructorLessonAsync(
+    int lessonId,
+    string instructorId);
     }
 }

@@ -111,5 +111,86 @@ namespace Engineering_Hub.Controllers
 
             return Ok(result.Message);
         }
+
+        // CREATE A RECURRING SCHEDULE
+        [HttpPost("schedule")]
+        [Authorize(Roles = "Instructor")]
+        public async Task<IActionResult> CreateSchedule(
+            [FromBody] InteractiveScheduleDTO dto)
+        {
+            var instructorId =
+                User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (instructorId == null)
+                return Unauthorized();
+
+            var schedule = await _activityService.CreateScheduleAsync(
+                dto, instructorId);
+
+            if (schedule == null)
+            {
+                return BadRequest(
+                    "Invalid schedule, track, or instructor assignment.");
+            }
+
+            return Ok(schedule);
+        }
+
+
+        // GET SCHEDULES FOR A TRACK
+        [HttpGet("Track/{trackId}/Schedules")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetSchedulesByTrack(int trackId)
+        {
+            var schedules =
+                await _activityService.GetSchedulesByTrackAsync(trackId);
+
+            return Ok(schedules);
+        }
+
+        // UPDATE A RECURRING SCHEDULE
+        [HttpPut("schedule/{scheduleId}")]
+        [Authorize(Roles = "Instructor")]
+        public async Task<IActionResult> UpdateSchedule(
+            int scheduleId,
+            [FromBody] InteractiveScheduleDTO dto)
+        {
+            var instructorId =
+                User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (instructorId == null)
+                return Unauthorized();
+
+            var result = await _activityService.UpdateScheduleAsync(
+                scheduleId, dto, instructorId);
+
+            if (!result.Success)
+                return BadRequest(result.Message);
+
+            return Ok(result.Message);
+        }
+
+
+        // END A RECURRING SCHEDULE
+        [HttpPut("schedule/{scheduleId}/end")]
+        [Authorize(Roles = "Instructor")]
+        public async Task<IActionResult> EndSchedule(int scheduleId)
+        {
+            var instructorId =
+                User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (instructorId == null)
+                return Unauthorized();
+
+            var result = await _activityService.EndScheduleAsync(
+                scheduleId, instructorId);
+
+            if (!result.Success)
+                return BadRequest(result.Message);
+
+            return Ok(result.Message);
+        }
+
+
     }
 }

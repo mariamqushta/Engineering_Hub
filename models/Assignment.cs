@@ -25,5 +25,11 @@ namespace Engineering_Hub.models
         public Lesson Lesson { get; set; }
 
         public ICollection<AssignmentSubmission> Submissions { get; set; } = new List<AssignmentSubmission>();
+
+        // Instructor's optional assignment attachment
+        public string? AttachmentOriginalFileName { get; set; }
+        public string? AttachmentStoredFileName { get; set; }
+        public string? AttachmentContentType { get; set; }
+        public long? AttachmentFileSize { get; set; }
     }
 }

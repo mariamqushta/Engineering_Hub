@@ -33,5 +33,10 @@ namespace Engineering_Hub.models
         public ICollection<Certificate> Certificates { get; set; }
 
         public ICollection<LessonProgress> LessonProgresses { get; set; }
+        public ICollection<InteractiveActivity> CreatedInteractiveActivities { get; set; }
+    = new List<InteractiveActivity>();
+
+        public ICollection<Workshop> CreatedWorkshops { get; set; }
+            = new List<Workshop>();
     }
 }

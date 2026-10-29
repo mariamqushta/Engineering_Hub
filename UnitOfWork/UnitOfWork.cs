@@ -17,10 +17,15 @@ namespace Engineering_Hub.UnitOfWork
         GenericRepository<WorkshopBooking> _workshopBookingRepo;
         GenericRepository<InteractiveActivity> _interactiveActivityRepo;
         GenericRepository<InteractiveBooking> _interactiveBookingRepo;
-
-
+        GenericRepository<InteractiveSchedule> _interactiveScheduleRepo;
+        GenericRepository<TrackBookingRequest> _trackBookingRequestRepo;
         GenericRepository<TrackInstructor> _trackInstructorRepo;
-
+        GenericRepository<LessonQuiz> _lessonQuizRepo;
+        GenericRepository<QuizQuestion> _quizQuestionRepo;
+        GenericRepository<QuizOption> _quizOptionRepo;
+        GenericRepository<QuizAttempt> _quizAttemptRepo;
+        GenericRepository<QuizAnswer> _quizAnswerRepo;
+        GenericRepository<LessonUnlock> _lessonUnlockRepo;
         GenericRepository<LessonContent> _lessonContentRepo;
         GenericRepository<LessonType> _lessonTypeRepo;
         GenericRepository<Assignment> _assignmentRepo;
@@ -43,6 +48,19 @@ namespace Engineering_Hub.UnitOfWork
                 }
 
                 return _trackRepo;
+            }
+        }
+        public GenericRepository<InteractiveSchedule> InteractiveScheduleRepo
+        {
+            get
+            {
+                if (_interactiveScheduleRepo == null)
+                {
+                    _interactiveScheduleRepo =
+                        new GenericRepository<InteractiveSchedule>(_context);
+                }
+
+                return _interactiveScheduleRepo;
             }
         }
 
@@ -181,6 +199,19 @@ namespace Engineering_Hub.UnitOfWork
                 return _trackInstructorRepo;
             }
         }
+        public GenericRepository<TrackBookingRequest> TrackBookingRequestrepo
+        {
+            get
+            {
+                if (_trackBookingRequestRepo == null)
+                {
+                    _trackBookingRequestRepo =
+                        new GenericRepository<TrackBookingRequest>(_context);
+                }
+
+                return _trackBookingRequestRepo;
+            }
+        }
         public GenericRepository<LessonContent> LessonContentrepo
         {
             get
@@ -205,6 +236,89 @@ namespace Engineering_Hub.UnitOfWork
                 }
 
                 return _lessonTypeRepo;
+            }
+        }
+        public GenericRepository<LessonQuiz> LessonQuizrepo
+        {
+            get
+            {
+                if (_lessonQuizRepo == null)
+                {
+                    _lessonQuizRepo =
+                        new GenericRepository<LessonQuiz>(_context);
+                }
+
+                return _lessonQuizRepo;
+            }
+        }
+
+        public GenericRepository<QuizQuestion> QuizQuestionrepo
+        {
+            get
+            {
+                if (_quizQuestionRepo == null)
+                {
+                    _quizQuestionRepo =
+                        new GenericRepository<QuizQuestion>(_context);
+                }
+
+                return _quizQuestionRepo;
+            }
+        }
+
+        public GenericRepository<QuizOption> QuizOptionrepo
+        {
+            get
+            {
+                if (_quizOptionRepo == null)
+                {
+                    _quizOptionRepo =
+                        new GenericRepository<QuizOption>(_context);
+                }
+
+                return _quizOptionRepo;
+            }
+        }
+
+        public GenericRepository<QuizAttempt> QuizAttemptrepo
+        {
+            get
+            {
+                if (_quizAttemptRepo == null)
+                {
+                    _quizAttemptRepo =
+                        new GenericRepository<QuizAttempt>(_context);
+                }
+
+                return _quizAttemptRepo;
+            }
+        }
+
+        public GenericRepository<QuizAnswer> QuizAnswerrepo
+        {
+            get
+            {
+                if (_quizAnswerRepo == null)
+                {
+                    _quizAnswerRepo =
+                        new GenericRepository<QuizAnswer>(_context);
+                }
+
+                return _quizAnswerRepo;
+            }
+        }
+
+        public GenericRepository<LessonUnlock> LessonUnlockrepo
+        {
+            get
+            {
+                if (_lessonUnlockRepo == null)
+                {
+                    _lessonUnlockRepo =
+                        new GenericRepository<LessonUnlock>(_context);
+                }
+
+                return _lessonUnlockRepo;
             }
         }
         public GenericRepository<CoachingConversation> CoachingConversationrepo

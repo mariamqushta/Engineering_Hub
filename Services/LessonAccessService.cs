@@ -21,11 +21,13 @@ namespace Engineering_Hub.Services
             _mapper = mapper;
         }
 
+
+
+
         public async Task<(bool Success, string Message, object? Lesson)> GetLessonAsync(
             int lessonId,
             string studentId)
         {
-            // 1. Find the requested lesson
             var lesson = _unitOfWork.Lessonrepo.GetById(lessonId);
 
             if (lesson == null)
@@ -33,57 +35,76 @@ namespace Engineering_Hub.Services
                 return (false, "Lesson not found.", null);
             }
 
-            // 2. Check if the student is enrolled in the Track
-            var enrollment = _unitOfWork.TrackEnrollmentrepo
-                .GetByCondition(e =>
-                    e.StudentId == studentId &&
-                    e.TrackId == lesson.TrackId &&
-                    e.Status == SessionStatus.Active)
-                .FirstOrDefault();
-
-            if (enrollment == null)
-            {
-                return (false, "You are not enrolled in this Track.", null);
-            }
-
-            // 3. If this is not the first lesson,
-            //    find the previous lesson
-            if (lesson.Order > 1)
-            {
-                var previousLesson = _unitOfWork.Lessonrepo
-                    .GetByCondition(l =>
-                        l.TrackId == lesson.TrackId &&
-                        l.Order == lesson.Order - 1)
+            // 1. Check whether the user has an active enrollment.
+            var enrollment = string.IsNullOrWhiteSpace(studentId)
+                ? null
+                : _unitOfWork.TrackEnrollmentrepo
+                    .GetByCondition(e =>
+                        e.StudentId == studentId &&
+                        e.TrackId == lesson.TrackId &&
+                        e.Status == SessionStatus.Active)
                     .FirstOrDefault();
 
-                if (previousLesson == null)
+            bool hasFullAccess = enrollment != null;
+
+            // 2. Check whether this lesson is unlocked for the student.
+            if (hasFullAccess)
+            {
+                bool isUnlocked = _unitOfWork.LessonUnlockrepo
+                    .GetByCondition(u =>
+                        u.StudentId == studentId &&
+                        u.LessonId == lessonId)
+                    .Any();
+
+                // The first lesson is accessible automatically.
+                if (lesson.Order == _unitOfWork.Lessonrepo
+                    .GetByCondition(l => l.TrackId == lesson.TrackId)
+                    .Min(l => l.Order))
                 {
-                    return (false, "Previous lesson not found.", null);
+                    isUnlocked = true;
                 }
 
-                // 4. Check if the student completed the previous lesson
-                var previousProgress = _unitOfWork.LessonProgressrepo
-                    .GetByCondition(p =>
-                        p.StudentId == studentId &&
-                        p.LessonId == previousLesson.Id &&
-                        p.IsCompleted)
-                    .FirstOrDefault();
-
-                if (previousProgress == null)
+                if (!isUnlocked)
                 {
                     return (
                         false,
-                        "You must complete the previous lesson first.",
+                        "This lesson is locked. Pass its prerequisite quiz to unlock it.",
                         null
                     );
                 }
             }
 
-            // 5. Map Entity → DTO
-            var lessonDto = _mapper.Map<LessonResponseDTO>(lesson);
+            // 3. Users without an active enrollment can access
+            // free previews only.
+            if (!hasFullAccess)
+            {
+                bool hasFreeContent = _unitOfWork.LessonContentrepo
+                    .GetByCondition(c =>
+                        c.LessonId == lessonId &&
+                        c.IsFree == true)
+                    .Any();
 
-            // 6. Everything is okay
-            return (true, "Access granted.", lessonDto);
+                if (!hasFreeContent)
+                {
+                    return (
+                        false,
+                        "This lesson has no free preview. Enroll to access it.",
+                        null
+                    );
+                }
+            }
+
+            // 4. Return the lesson details.
+            return (
+                true,
+                hasFullAccess
+                    ? "Access granted."
+                    : "Free preview access granted.",
+                _mapper.Map<LessonResponseDTO>(lesson)
+            );
         }
+
+
+
     }
 }

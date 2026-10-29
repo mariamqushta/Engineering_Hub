@@ -1,13 +1,14 @@
 ﻿using AutoMapper;
 using Engineering_Hub.DTO.CoachingDTOs;
+using Engineering_Hub.Hubs;
 using Engineering_Hub.models;
 using Engineering_Hub.UnitOfWork;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.SignalR;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.SignalR;
-using Engineering_Hub.Hubs;
 
 namespace Engineering_Hub.Services
 {
@@ -16,13 +17,16 @@ namespace Engineering_Hub.Services
         private readonly UnitWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly IHubContext<CoachingHub> _hubContext;
+        private readonly UserManager<ApplicationUser> _userManager;
         public CoachingService(
        UnitWork unitWork,
        IMapper mapper,
+       UserManager<ApplicationUser> userManager,
        IHubContext<CoachingHub> hubContext)
         {
             _unitOfWork = unitWork;
             _mapper = mapper;
+            _userManager = userManager;
             _hubContext = hubContext;
         }
         public async Task<(bool Success, string Message, int? ConversationId)>
@@ -242,5 +246,65 @@ namespace Engineering_Hub.Services
 
             return instructor != null;
         }
+
+        
+  public async Task<List<InstructorConversationDto>>
+    GetInstructorConversationsAsync(string instructorId)
+        {
+            var assignedTrackIds = _unitOfWork.TrackInstructorrepo
+                .GetByCondition(ti => ti.UserId == instructorId)
+                .Select(ti => ti.TrackId)
+                .ToList();
+
+            if (!assignedTrackIds.Any())
+                return new List<InstructorConversationDto>();
+
+            var eligibleEnrollments = _unitOfWork.TrackEnrollmentrepo
+            .GetByCondition(e =>
+                e.Status == SessionStatus.Active &&
+                e.BookingType == TrackBookingType.TrackWithCoaching)
+            .Select(e => new
+            {
+                e.StudentId,
+                e.TrackId
+            })
+            .ToList();
+
+            var conversations = _unitOfWork.CoachingConversationrepo
+                .GetByCondition(c => assignedTrackIds.Contains(c.TrackId))
+                .ToList()
+                .Where(c => eligibleEnrollments.Any(e =>
+                    e.StudentId == c.StudentId &&
+                    e.TrackId == c.TrackId))
+                .ToList();
+
+            var result = new List<InstructorConversationDto>();
+
+            foreach (var conversation in conversations)
+            {
+                // Get the student directly from the Identity DbContext
+                var student = await _userManager.FindByIdAsync(conversation.StudentId);
+
+                var track = _unitOfWork.Trackrepo
+                    .GetById(conversation.TrackId);
+
+                var lastMessage = _unitOfWork.CoachingMessagerepo
+                    .GetByCondition(m => m.ConversationId == conversation.Id)
+                    .OrderByDescending(m => m.SentAt)
+                    .Select(m => m.Message)
+                    .FirstOrDefault();
+
+                result.Add(new InstructorConversationDto
+                {
+                    ConversationId = conversation.Id,
+                    StudentName = student?.FullName ?? "Student",
+                    TrackTitle = track?.Title ?? "Track",
+                    LastMessage = lastMessage ?? string.Empty
+                });
+            }
+
+            return result;
+        }
+
     }
 }

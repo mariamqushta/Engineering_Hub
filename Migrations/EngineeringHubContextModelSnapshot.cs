@@ -111,6 +111,18 @@ namespace Engineering_Hub.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("AttachmentContentType")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<long?>("AttachmentFileSize")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("AttachmentOriginalFileName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("AttachmentStoredFileName")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
@@ -151,8 +163,14 @@ namespace Engineering_Hub.Migrations
                     b.Property<string>("Content")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("ContentType")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("Feedback")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<long?>("FileSize")
+                        .HasColumnType("bigint");
 
                     b.Property<string>("FileUrl")
                         .HasColumnType("nvarchar(max)");
@@ -160,6 +178,12 @@ namespace Engineering_Hub.Migrations
                     b.Property<decimal?>("Grade")
                         .HasPrecision(5, 2)
                         .HasColumnType("decimal(5,2)");
+
+                    b.Property<string>("OriginalFileName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("StoredFileName")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("StudentId")
                         .IsRequired()
@@ -276,6 +300,9 @@ namespace Engineering_Hub.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("ApplicationUserId")
+                        .HasColumnType("nvarchar(450)");
+
                     b.Property<int>("Capacity")
                         .HasColumnType("int");
 
@@ -287,6 +314,12 @@ namespace Engineering_Hub.Migrations
 
                     b.Property<TimeSpan>("EndTime")
                         .HasColumnType("time");
+
+                    b.Property<string>("InstructorId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<int?>("InteractiveScheduleId")
+                        .HasColumnType("int");
 
                     b.Property<string>("MeetingUrl")
                         .HasColumnType("nvarchar(max)");
@@ -310,6 +343,12 @@ namespace Engineering_Hub.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("ApplicationUserId");
+
+                    b.HasIndex("InstructorId");
+
+                    b.HasIndex("InteractiveScheduleId");
+
                     b.HasIndex("TrackId");
 
                     b.ToTable("InteractiveActivities");
@@ -322,6 +361,9 @@ namespace Engineering_Hub.Migrations
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ApprovalStatus")
+                        .HasColumnType("int");
 
                     b.Property<DateTime>("BookedAt")
                         .HasColumnType("datetime2");
@@ -346,6 +388,69 @@ namespace Engineering_Hub.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("InteractiveBookings");
+                });
+
+            modelBuilder.Entity("Engineering_Hub.models.InteractiveSchedule", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("Capacity")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DaysOfWeek")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("EndDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<TimeSpan>("EndTime")
+                        .HasColumnType("time");
+
+                    b.Property<string>("InstructorId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("MeetingUrl")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal>("Price")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("StartDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<TimeSpan>("StartTime")
+                        .HasColumnType("time");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("TrackId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InstructorId");
+
+                    b.HasIndex("TrackId");
+
+                    b.ToTable("InteractiveSchedules");
                 });
 
             modelBuilder.Entity("Engineering_Hub.models.Lesson", b =>
@@ -464,6 +569,44 @@ namespace Engineering_Hub.Migrations
                     b.ToTable("LessonProgresses");
                 });
 
+            modelBuilder.Entity("Engineering_Hub.models.LessonQuiz", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("LessonId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("PassingScore")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<int>("QuestionCount")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LessonId");
+
+                    b.ToTable("LessonQuizzes");
+                });
+
             modelBuilder.Entity("Engineering_Hub.models.LessonType", b =>
                 {
                     b.Property<int>("Id")
@@ -506,6 +649,159 @@ namespace Engineering_Hub.Migrations
                             Id = 5,
                             Name = "Workshop"
                         });
+                });
+
+            modelBuilder.Entity("Engineering_Hub.models.LessonUnlock", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("LessonId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("StudentId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("UnlockedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LessonId");
+
+                    b.HasIndex("StudentId", "LessonId")
+                        .IsUnique();
+
+                    b.ToTable("LessonUnlocks");
+                });
+
+            modelBuilder.Entity("Engineering_Hub.models.QuizAnswer", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("IsCorrect")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("QuizAttemptId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("QuizQuestionId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SelectedOptionId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("QuizQuestionId");
+
+                    b.HasIndex("SelectedOptionId");
+
+                    b.HasIndex("QuizAttemptId", "QuizQuestionId")
+                        .IsUnique();
+
+                    b.ToTable("QuizAnswers");
+                });
+
+            modelBuilder.Entity("Engineering_Hub.models.QuizAttempt", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("CorrectAnswers")
+                        .HasColumnType("int");
+
+                    b.Property<int>("LessonQuizId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("Passed")
+                        .HasColumnType("bit");
+
+                    b.Property<decimal>("Score")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<DateTime>("StartedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("StudentId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime?>("SubmittedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("TotalQuestions")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LessonQuizId");
+
+                    b.HasIndex("StudentId");
+
+                    b.ToTable("QuizAttempts");
+                });
+
+            modelBuilder.Entity("Engineering_Hub.models.QuizOption", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("IsCorrect")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("QuizQuestionId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("QuizQuestionId");
+
+                    b.ToTable("QuizOptions");
+                });
+
+            modelBuilder.Entity("Engineering_Hub.models.QuizQuestion", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("LessonQuizId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LessonQuizId");
+
+                    b.ToTable("QuizQuestions");
                 });
 
             modelBuilder.Entity("Engineering_Hub.models.RefreshToken", b =>
@@ -570,6 +866,43 @@ namespace Engineering_Hub.Migrations
                     b.ToTable("Tracks");
                 });
 
+            modelBuilder.Entity("Engineering_Hub.models.TrackBookingRequest", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ApprovalStatus")
+                        .HasColumnType("int");
+
+                    b.Property<int>("BookingType")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("RequestedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal>("RequestedPrice")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("StudentId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<int>("TrackId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StudentId");
+
+                    b.HasIndex("TrackId");
+
+                    b.ToTable("TrackBookingRequests");
+                });
+
             modelBuilder.Entity("Engineering_Hub.models.TrackEnrollment", b =>
                 {
                     b.Property<int>("Id")
@@ -577,6 +910,13 @@ namespace Engineering_Hub.Migrations
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ApprovalStatus")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("ApprovedPrice")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<int>("BookingType")
                         .HasColumnType("int");
@@ -630,6 +970,9 @@ namespace Engineering_Hub.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("ApplicationUserId")
+                        .HasColumnType("nvarchar(450)");
+
                     b.Property<int>("Capacity")
                         .HasColumnType("int");
 
@@ -641,6 +984,9 @@ namespace Engineering_Hub.Migrations
 
                     b.Property<TimeSpan>("EndTime")
                         .HasColumnType("time");
+
+                    b.Property<string>("InstructorId")
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("Place")
                         .IsRequired()
@@ -665,6 +1011,10 @@ namespace Engineering_Hub.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("ApplicationUserId");
+
+                    b.HasIndex("InstructorId");
+
                     b.HasIndex("TrackId");
 
                     b.ToTable("Workshops");
@@ -677,6 +1027,9 @@ namespace Engineering_Hub.Migrations
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ApprovalStatus")
+                        .HasColumnType("int");
 
                     b.Property<DateTime>("BookedAt")
                         .HasColumnType("datetime2");
@@ -925,11 +1278,29 @@ namespace Engineering_Hub.Migrations
 
             modelBuilder.Entity("Engineering_Hub.models.InteractiveActivity", b =>
                 {
+                    b.HasOne("Engineering_Hub.models.ApplicationUser", null)
+                        .WithMany("CreatedInteractiveActivities")
+                        .HasForeignKey("ApplicationUserId");
+
+                    b.HasOne("Engineering_Hub.models.ApplicationUser", "Instructor")
+                        .WithMany()
+                        .HasForeignKey("InstructorId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Engineering_Hub.models.InteractiveSchedule", "InteractiveSchedule")
+                        .WithMany("Activities")
+                        .HasForeignKey("InteractiveScheduleId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("Engineering_Hub.models.Track", "Track")
                         .WithMany("InteractiveActivities")
                         .HasForeignKey("TrackId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("Instructor");
+
+                    b.Navigation("InteractiveSchedule");
 
                     b.Navigation("Track");
                 });
@@ -951,6 +1322,25 @@ namespace Engineering_Hub.Migrations
                     b.Navigation("InteractiveActivity");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Engineering_Hub.models.InteractiveSchedule", b =>
+                {
+                    b.HasOne("Engineering_Hub.models.ApplicationUser", "Instructor")
+                        .WithMany()
+                        .HasForeignKey("InstructorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Engineering_Hub.models.Track", "Track")
+                        .WithMany()
+                        .HasForeignKey("TrackId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Instructor");
+
+                    b.Navigation("Track");
                 });
 
             modelBuilder.Entity("Engineering_Hub.models.Lesson", b =>
@@ -1016,6 +1406,104 @@ namespace Engineering_Hub.Migrations
                     b.Navigation("Student");
                 });
 
+            modelBuilder.Entity("Engineering_Hub.models.LessonQuiz", b =>
+                {
+                    b.HasOne("Engineering_Hub.models.Lesson", "Lesson")
+                        .WithMany("Quizzes")
+                        .HasForeignKey("LessonId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Lesson");
+                });
+
+            modelBuilder.Entity("Engineering_Hub.models.LessonUnlock", b =>
+                {
+                    b.HasOne("Engineering_Hub.models.Lesson", "Lesson")
+                        .WithMany("LessonUnlocks")
+                        .HasForeignKey("LessonId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Engineering_Hub.models.ApplicationUser", "Student")
+                        .WithMany()
+                        .HasForeignKey("StudentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Lesson");
+
+                    b.Navigation("Student");
+                });
+
+            modelBuilder.Entity("Engineering_Hub.models.QuizAnswer", b =>
+                {
+                    b.HasOne("Engineering_Hub.models.QuizAttempt", "QuizAttempt")
+                        .WithMany("Answers")
+                        .HasForeignKey("QuizAttemptId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Engineering_Hub.models.QuizQuestion", "QuizQuestion")
+                        .WithMany()
+                        .HasForeignKey("QuizQuestionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Engineering_Hub.models.QuizOption", "SelectedOption")
+                        .WithMany()
+                        .HasForeignKey("SelectedOptionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("QuizAttempt");
+
+                    b.Navigation("QuizQuestion");
+
+                    b.Navigation("SelectedOption");
+                });
+
+            modelBuilder.Entity("Engineering_Hub.models.QuizAttempt", b =>
+                {
+                    b.HasOne("Engineering_Hub.models.LessonQuiz", "LessonQuiz")
+                        .WithMany("Attempts")
+                        .HasForeignKey("LessonQuizId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Engineering_Hub.models.ApplicationUser", "Student")
+                        .WithMany()
+                        .HasForeignKey("StudentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("LessonQuiz");
+
+                    b.Navigation("Student");
+                });
+
+            modelBuilder.Entity("Engineering_Hub.models.QuizOption", b =>
+                {
+                    b.HasOne("Engineering_Hub.models.QuizQuestion", "QuizQuestion")
+                        .WithMany("Options")
+                        .HasForeignKey("QuizQuestionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("QuizQuestion");
+                });
+
+            modelBuilder.Entity("Engineering_Hub.models.QuizQuestion", b =>
+                {
+                    b.HasOne("Engineering_Hub.models.LessonQuiz", "LessonQuiz")
+                        .WithMany("Questions")
+                        .HasForeignKey("LessonQuizId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("LessonQuiz");
+                });
+
             modelBuilder.Entity("Engineering_Hub.models.RefreshToken", b =>
                 {
                     b.HasOne("Engineering_Hub.models.ApplicationUser", "User")
@@ -1025,6 +1513,25 @@ namespace Engineering_Hub.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Engineering_Hub.models.TrackBookingRequest", b =>
+                {
+                    b.HasOne("Engineering_Hub.models.ApplicationUser", "Student")
+                        .WithMany()
+                        .HasForeignKey("StudentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Engineering_Hub.models.Track", "Track")
+                        .WithMany()
+                        .HasForeignKey("TrackId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Student");
+
+                    b.Navigation("Track");
                 });
 
             modelBuilder.Entity("Engineering_Hub.models.TrackEnrollment", b =>
@@ -1067,11 +1574,22 @@ namespace Engineering_Hub.Migrations
 
             modelBuilder.Entity("Engineering_Hub.models.Workshop", b =>
                 {
+                    b.HasOne("Engineering_Hub.models.ApplicationUser", null)
+                        .WithMany("CreatedWorkshops")
+                        .HasForeignKey("ApplicationUserId");
+
+                    b.HasOne("Engineering_Hub.models.ApplicationUser", "Instructor")
+                        .WithMany()
+                        .HasForeignKey("InstructorId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("Engineering_Hub.models.Track", "Track")
                         .WithMany("Workshops")
                         .HasForeignKey("TrackId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("Instructor");
 
                     b.Navigation("Track");
                 });
@@ -1152,6 +1670,10 @@ namespace Engineering_Hub.Migrations
 
                     b.Navigation("Certificates");
 
+                    b.Navigation("CreatedInteractiveActivities");
+
+                    b.Navigation("CreatedWorkshops");
+
                     b.Navigation("InteractiveBookings");
 
                     b.Navigation("LessonProgresses");
@@ -1173,6 +1695,11 @@ namespace Engineering_Hub.Migrations
                     b.Navigation("Bookings");
                 });
 
+            modelBuilder.Entity("Engineering_Hub.models.InteractiveSchedule", b =>
+                {
+                    b.Navigation("Activities");
+                });
+
             modelBuilder.Entity("Engineering_Hub.models.Lesson", b =>
                 {
                     b.Navigation("Assignments");
@@ -1180,11 +1707,32 @@ namespace Engineering_Hub.Migrations
                     b.Navigation("LessonContents");
 
                     b.Navigation("LessonProgresses");
+
+                    b.Navigation("LessonUnlocks");
+
+                    b.Navigation("Quizzes");
+                });
+
+            modelBuilder.Entity("Engineering_Hub.models.LessonQuiz", b =>
+                {
+                    b.Navigation("Attempts");
+
+                    b.Navigation("Questions");
                 });
 
             modelBuilder.Entity("Engineering_Hub.models.LessonType", b =>
                 {
                     b.Navigation("LessonContents");
+                });
+
+            modelBuilder.Entity("Engineering_Hub.models.QuizAttempt", b =>
+                {
+                    b.Navigation("Answers");
+                });
+
+            modelBuilder.Entity("Engineering_Hub.models.QuizQuestion", b =>
+                {
+                    b.Navigation("Options");
                 });
 
             modelBuilder.Entity("Engineering_Hub.models.Track", b =>

@@ -14,7 +14,9 @@ namespace Engineering_Hub.Services
 
         Task<List<LessonResponseDTO>> GetLessonsByTrackAsync(
             int trackId);
-
+        Task<List<LessonResponseDTO>> GetLessonsByTrackForStudentAsync(
+    int trackId,
+    string studentId);
         Task<LessonResponseDTO?> GetLessonByIdAsync(
             int id);
 

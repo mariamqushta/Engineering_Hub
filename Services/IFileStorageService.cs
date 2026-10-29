@@ -12,5 +12,17 @@ namespace Engineering_Hub.Services
         Task DeleteFileAsync(
             string storedFileName,
             string folderName);
+
+        Task<string> SavePrivateFileAsync(
+    IFormFile file,
+    string folderName);
+
+        Task DeletePrivateFileAsync(
+            string storedFileName,
+            string folderName);
+
+        string? GetPrivateFilePath(
+    string storedFileName,
+    string folderName);
     }
 }

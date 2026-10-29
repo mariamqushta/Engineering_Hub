@@ -106,5 +106,20 @@ namespace Engineering_Hub.Controllers
 
             return Ok(result.Messages);
         }
+        [HttpGet("conversations")]
+        public async Task<IActionResult> GetInstructorConversations()
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (userId == null)
+            {
+                return Unauthorized();
+            }
+
+            var conversations =
+                await _coachingService.GetInstructorConversationsAsync(userId);
+
+            return Ok(conversations);
+        }
     }
 }

@@ -339,6 +339,7 @@ namespace Engineering_Hub.Services
                 }).ToList();
             }
 
+
             // 5. Check if the student has an active enrollment
             var enrollment = _unitOfWork.TrackEnrollmentrepo
                 .GetByCondition(e =>
@@ -347,42 +348,34 @@ namespace Engineering_Hub.Services
                     e.Status == SessionStatus.Active)
                 .FirstOrDefault();
 
-            bool hasLessonAccess = enrollment != null;
-
-            // 6. If enrolled and this is not the first lesson,
-            //    check the previous lesson
-            if (hasLessonAccess && lesson.Order > 1)
+            // 6. Enrolled students can access only unlocked lessons.
+            if (enrollment != null)
             {
-                var previousLesson = _unitOfWork.Lessonrepo
-                    .GetByCondition(l =>
-                        l.TrackId == lesson.TrackId &&
-                        l.Order == lesson.Order - 1)
-                    .FirstOrDefault();
+                bool isUnlocked = _unitOfWork.LessonUnlockrepo
+                    .GetByCondition(u =>
+                        u.StudentId == userId &&
+                        u.LessonId == lessonId)
+                    .Any();
 
-                if (previousLesson == null)
+                // The first lesson is accessible automatically.
+                if (!isUnlocked)
                 {
-                    hasLessonAccess = false;
-                }
-                else
-                {
-                    var previousProgress = _unitOfWork.LessonProgressrepo
-                        .GetByCondition(p =>
-                            p.StudentId == userId &&
-                            p.LessonId == previousLesson.Id &&
-                            p.IsCompleted)
+                    var firstLesson = _unitOfWork.Lessonrepo
+                        .GetByCondition(l => l.TrackId == lesson.TrackId)
+                        .OrderBy(l => l.Order)
                         .FirstOrDefault();
 
-                    if (previousProgress == null)
-                    {
-                        hasLessonAccess = false;
-                    }
+                    isUnlocked = firstLesson != null &&
+                                 firstLesson.Id == lessonId;
                 }
-            }
 
-            // 7. If the student has full lesson access,
-            //    return all lesson contents
-            if (hasLessonAccess)
-            {
+                // Do not expose content for a locked lesson.
+                if (!isUnlocked)
+                {
+                    return new List<LessonContentResponseDTO>();
+                }
+
+                // The student has access to this lesson.
                 return contents.Select(c => new LessonContentResponseDTO
                 {
                     Id = c.Id,
@@ -399,8 +392,7 @@ namespace Engineering_Hub.Services
                 }).ToList();
             }
 
-            // 8. User does not have full lesson access.
-            //    Return only free file content.
+            // 7. Users without active enrollment can see free content only.
             return contents
                 .Where(c => c.IsFree == true)
                 .Select(c => new LessonContentResponseDTO
@@ -418,9 +410,8 @@ namespace Engineering_Hub.Services
                     InteractiveActivityId = c.InteractiveActivityId
                 })
                 .ToList();
+
         }
-
-
 
         public async Task UpdateFileContentAsync(
          int contentId,

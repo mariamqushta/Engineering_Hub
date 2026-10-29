@@ -64,15 +64,62 @@ namespace Engineering_Hub.Services
         }
 
         public async Task<List<LessonResponseDTO>> GetLessonsByTrackAsync(
-            int trackId)
+        int trackId)
         {
             var lessons = _unitOfWork.Lessonrepo
-                .GetByCondition(x =>
-                    x.TrackId == trackId)
+                .GetByCondition(x => x.TrackId == trackId)
                 .OrderBy(x => x.Order)
                 .ToList();
 
-            return _mapper.Map<List<LessonResponseDTO>>(lessons);
+            var firstLessonId = lessons.FirstOrDefault()?.Id;
+
+            var result = _mapper.Map<List<LessonResponseDTO>>(lessons);
+
+            for (int i = 0; i < lessons.Count; i++)
+            {
+                var lesson = lessons[i];
+
+                // The first lesson is unlocked automatically.
+                if (lesson.Id == firstLessonId)
+                {
+                    result[i].IsUnlocked = true;
+                    continue;
+                }
+
+                // Check whether this lesson has an unlock record.
+                result[i].IsUnlocked = _unitOfWork.LessonUnlockrepo
+                    .GetByCondition(u => u.LessonId == lesson.Id)
+                    .Any();
+            }
+
+            return result;
+        }
+        public async Task<List<LessonResponseDTO>> GetLessonsByTrackForStudentAsync(
+    int trackId,
+    string studentId)
+        {
+            var lessons = _unitOfWork.Lessonrepo
+                .GetByCondition(l => l.TrackId == trackId)
+                .OrderBy(l => l.Order)
+                .ToList();
+
+            var firstLessonId = lessons.FirstOrDefault()?.Id;
+
+            var unlockedLessonIds = _unitOfWork.LessonUnlockrepo
+                .GetByCondition(u => u.StudentId == studentId)
+                .Select(u => u.LessonId)
+                .ToHashSet();
+
+            var result = _mapper.Map<List<LessonResponseDTO>>(lessons);
+
+            for (int i = 0; i < lessons.Count; i++)
+            {
+                result[i].IsUnlocked =
+                    lessons[i].Id == firstLessonId ||
+                    unlockedLessonIds.Contains(lessons[i].Id);
+            }
+
+            return result;
         }
 
         public async Task<LessonResponseDTO?> GetLessonByIdAsync(

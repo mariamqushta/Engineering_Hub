@@ -296,5 +296,25 @@ namespace Engineering_Hub.Services
                 "Instructor removed from Track successfully."
             );
         }
+        // =========================
+        // GET TRACKS BY INSTRUCTOR
+        // =========================
+        public Task<List<TrackResponseDTO>> GetTracksByInstructorAsync(
+       string instructorId)
+        {
+            var assignedTrackIds = _unitOfWork.TrackInstructorrepo
+                .GetByCondition(x => x.UserId == instructorId)
+                .Select(x => x.TrackId)
+                .ToList();
+
+            var tracks = _unitOfWork.Trackrepo
+                .GetByCondition(t =>
+                    t.IsActive && assignedTrackIds.Contains(t.Id))
+                .ToList();
+
+            var result = _mapper.Map<List<TrackResponseDTO>>(tracks);
+
+            return Task.FromResult(result);
+        }
     }
 }

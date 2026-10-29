@@ -19,5 +19,8 @@ namespace Engineering_Hub.DTO
         public decimal? Grade { get; set; }
 
         public string? Feedback { get; set; }
+        public string? OriginalFileName { get; set; }
+        public long? FileSize { get; set; }
+        public bool HasFile { get; set; }
     }
 }

@@ -63,6 +63,9 @@ namespace Engineering_Hub.Services
 
             // 7. Map DTO → Entity
             var workshop = _mapper.Map<Workshop>(dto);
+            workshop.InstructorId = instructorId;
+           
+          
 
             // 8. Set backend-controlled values
             workshop.Status = SessionStatus.Scheduled;
@@ -79,13 +82,32 @@ namespace Engineering_Hub.Services
 
 
         // GET WORKSHOPS BY TRACK
+        // GET WORKSHOPS BY TRACK
         public async Task<List<WorkshopResponseDTO>> GetWorkshopsByTrackAsync(
             int trackId)
         {
             var workshops = _unitWork.Workshoprepo
-                .GetByCondition(w => w.TrackId == trackId);
+                .GetByCondition(w => w.TrackId == trackId)
+                .ToList();
 
-            return _mapper.Map<List<WorkshopResponseDTO>>(workshops);
+            var result = _mapper.Map<List<WorkshopResponseDTO>>(workshops);
+
+            foreach (var workshopDto in result)
+            {
+                var activeBookings = _unitWork.WorkshopBookingrepo
+                    .GetByCondition(b =>
+                        b.WorkshopId == workshopDto.Id &&
+                        b.Status != SessionStatus.Cancelled &&
+                        b.ApprovalStatus != BookingApprovalStatus.Rejected)
+                    .Count();
+
+                workshopDto.AvailableCapacity = Math.Max(
+                    0,
+                    workshopDto.Capacity - activeBookings
+                );
+            }
+
+            return result;
         }
 
 

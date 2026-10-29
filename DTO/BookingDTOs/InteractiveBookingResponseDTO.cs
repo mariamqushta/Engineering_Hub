@@ -11,5 +11,6 @@ namespace Engineering_Hub.DTO.BookingDTOs
         public SessionStatus BookingStatus { get; set; }
 
         public InteractiveActivityResponseDTO InteractiveActivity { get; set; }
+        public BookingApprovalStatus ApprovalStatus { get; set; }
     }
 }

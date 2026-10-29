@@ -8,7 +8,9 @@ namespace Engineering_Hub.models
         public int Id { get; set; }
 
         public int TrackId { get; set; }
+        public string? InstructorId { get; set; }
 
+        public ApplicationUser? Instructor { get; set; }
         public string Title { get; set; }
 
         public string? Description { get; set; }
@@ -33,5 +35,10 @@ namespace Engineering_Hub.models
         public Track Track { get; set; }
 
         public ICollection<InteractiveBooking> Bookings { get; set; } = new List<InteractiveBooking>();
+
+        public int? InteractiveScheduleId { get; set; }
+
+        public InteractiveSchedule? InteractiveSchedule { get; set; }
+
     }
 }

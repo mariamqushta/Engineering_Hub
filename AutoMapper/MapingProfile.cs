@@ -33,6 +33,17 @@ namespace Engineering_Hub.AutoMapper
             CreateMap<InteractiveBooking, InteractiveBookingResponseDTO>();
             CreateMap<CoachingMessage, CoachingMessageResponseDto>();
             CreateMap<Certificate, CertificateResponseDTO>();
+            CreateMap<Assignment, AssignmentResponseDTO>()
+    .ForMember(
+        dest => dest.HasAttachment,
+        opt => opt.MapFrom(src =>
+            !string.IsNullOrEmpty(src.AttachmentStoredFileName)));
+
+            CreateMap<AssignmentSubmission, AssignmentSubmissionResponseDTO>()
+                .ForMember(
+                    dest => dest.HasFile,
+                    opt => opt.MapFrom(src =>
+                        !string.IsNullOrEmpty(src.StoredFileName)));
 
         }
     }

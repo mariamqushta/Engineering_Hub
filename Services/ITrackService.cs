@@ -27,5 +27,7 @@ namespace Engineering_Hub.Services
         Task<(bool Success, string Message)> RemoveInstructorAsync(
             int trackId,
             string username);
+        Task<List<TrackResponseDTO>> GetTracksByInstructorAsync(
+    string instructorId);
     }
 }

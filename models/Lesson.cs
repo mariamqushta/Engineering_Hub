@@ -32,5 +32,10 @@ namespace Engineering_Hub.models
 
         public ICollection<LessonProgress> LessonProgresses { get; set; }
             = new List<LessonProgress>();
+        public ICollection<LessonQuiz> Quizzes { get; set; }
+    = new List<LessonQuiz>();
+
+        public ICollection<LessonUnlock> LessonUnlocks { get; set; }
+            = new List<LessonUnlock>();
     }
 }

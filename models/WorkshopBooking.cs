@@ -3,15 +3,6 @@ using System;
 
 namespace Engineering_Hub.models
 {
-    public enum SessionStatus
-    {
-        Scheduled,
-        Ongoing,
-        Finished,
-        Cancelled,
-        Active,
-        Completed
-    }
     public class WorkshopBooking
     {
         public int Id { get; set; }
@@ -25,8 +16,11 @@ namespace Engineering_Hub.models
         public SessionStatus Status { get; set; }
 
         public BookingSource Source { get; set; }
-        // Relationships
 
+        public BookingApprovalStatus ApprovalStatus { get; set; }
+            = BookingApprovalStatus.Pending;
+
+        // Relationships
         public ApplicationUser User { get; set; }
 
         public Workshop Workshop { get; set; }

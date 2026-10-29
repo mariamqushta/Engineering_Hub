@@ -8,19 +8,36 @@ namespace Engineering_Hub.Services
     public class FileValidationService : IFileValidationService
     {
         private readonly Dictionary<string, string[]> _allowedExtensions =
-            new Dictionary<string, string[]>
+      new Dictionary<string, string[]>
+      {
+        { "Video", new[] { ".mp4", ".webm" } },
+        { "PDF", new[] { ".pdf" } },
+        { "PowerPoint", new[] { ".ppt", ".pptx" } },
+
+        // Assignment attachments and student submissions
+        {
+            "Assignment",
+            new[]
             {
-                { "Video", new[] { ".mp4", ".webm" } },
-                { "PDF", new[] { ".pdf" } },
-                { "PowerPoint", new[] { ".ppt", ".pptx" } }
-            };
+                ".pdf", ".doc", ".docx",
+                ".ppt", ".pptx", ".txt",
+                ".zip",
+                ".cs", ".js", ".ts",
+                ".html", ".css", ".py",
+                ".java", ".cpp", ".c",
+                ".sql", ".json", ".xml"
+            }
+        }
+      };
 
         private readonly Dictionary<string, long> _maxFileSizes =
             new Dictionary<string, long>
             {
-                { "Video", 500 * 1024 * 1024 },       // 500 MB
-                { "PDF", 20 * 1024 * 1024 },          // 20 MB
-                { "PowerPoint", 50 * 1024 * 1024 }    // 50 MB
+        { "Video", 500 * 1024 * 1024 },       // 500 MB
+        { "PDF", 20 * 1024 * 1024 },          // 20 MB
+        { "PowerPoint", 50 * 1024 * 1024 },    // 50 MB
+
+        { "Assignment", 20 * 1024 * 1024 }     // 20 MB
             };
 
         public void ValidateFile(

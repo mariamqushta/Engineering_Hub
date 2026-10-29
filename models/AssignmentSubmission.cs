@@ -21,6 +21,11 @@ namespace Engineering_Hub.models
 
         public string? Feedback { get; set; }
 
+        // Student's uploaded file metadata
+        public string? OriginalFileName { get; set; }
+        public string? StoredFileName { get; set; }
+        public string? ContentType { get; set; }
+        public long? FileSize { get; set; }
 
         // Relationships
 

@@ -52,12 +52,14 @@ namespace Engineering_Hub.Services
                 return (false, "You are already booked for this interactive activity.");
 
             // Only individual bookings count toward capacity.
+
             var currentBookings = _unitOfWork.InteractiveBookingrepo
                 .GetByCondition(b =>
                     b.InteractiveActivityId == dto.InteractiveActivityId &&
                     b.Status != SessionStatus.Cancelled &&
-                    b.Source == BookingSource.Individual)
+                    b.ApprovalStatus != BookingApprovalStatus.Rejected)
                 .Count();
+
 
             if (currentBookings >= activity.Capacity)
                 return (false, "This interactive activity is fully booked.");
@@ -68,14 +70,18 @@ namespace Engineering_Hub.Services
                 InteractiveActivityId = dto.InteractiveActivityId,
                 BookedAt = DateTime.UtcNow,
                 Status = SessionStatus.Scheduled,
-                Source = BookingSource.Individual
+                Source = BookingSource.Individual,
+                ApprovalStatus = BookingApprovalStatus.Pending
             };
 
             _unitOfWork.InteractiveBookingrepo.add(booking);
 
             await _unitOfWork.SaveAsync();
 
-            return (true, "Interactive activity booked successfully.");
+            return (
+                true,
+                "Interactive activity booking request submitted and awaiting admin approval."
+            );
         }
 
         public async Task<List<InteractiveBookingResponseDTO>> GetMyBookingsAsync(

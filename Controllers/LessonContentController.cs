@@ -155,16 +155,11 @@ namespace Engineering_Hub.Controllers
         // ==========================================
 
         [HttpGet("lesson/{lessonId}")]
-        public async Task<IActionResult> GetLessonContents(
-            int lessonId)
+        [AllowAnonymous]
+        public async Task<IActionResult> GetLessonContents(int lessonId)
         {
-            var userId =
-                User.FindFirstValue(ClaimTypes.NameIdentifier);
-
-            if (userId == null)
-            {
-                return Unauthorized();
-            }
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+                         ?? string.Empty;
 
             try
             {

@@ -16,10 +16,13 @@ namespace Engineering_Hub.models
         public SessionStatus Status { get; set; }
 
         public DateTime? CompletedAt { get; set; }
+        public decimal ApprovedPrice { get; set; }
         public TrackBookingType BookingType { get; set; }
 
-        // Navigation properties
+        public BookingApprovalStatus ApprovalStatus { get; set; }
+            = BookingApprovalStatus.Pending;
 
+        // Navigation properties
         public ApplicationUser Student { get; set; }
 
         public Track Track { get; set; }

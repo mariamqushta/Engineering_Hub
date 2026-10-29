@@ -1,4 +1,5 @@
-﻿using Engineering_Hub.models;
+﻿
+using Engineering_Hub.models;
 using Engineering_Hub.models.context;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
@@ -20,7 +21,8 @@ namespace Engineering_Hub.Hubs
 
         public async Task JoinConversation(int conversationId)
         {
-            var userId = Context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var userId = Context.User?
+                .FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
             if (string.IsNullOrEmpty(userId))
             {
@@ -35,9 +37,23 @@ namespace Engineering_Hub.Hubs
                 throw new HubException("Conversation not found.");
             }
 
-            // Student can join their own conversation
+            // Student: must own the conversation AND have active
+            // coaching access for the conversation's track.
             if (conversation.StudentId == userId)
             {
+                var hasCoachingAccess =
+                    await _context.TrackEnrollments.AnyAsync(e =>
+                        e.StudentId == userId &&
+                        e.TrackId == conversation.TrackId &&
+                        e.Status == SessionStatus.Active &&
+                        e.BookingType == TrackBookingType.TrackWithCoaching);
+
+                if (!hasCoachingAccess)
+                {
+                    throw new HubException(
+                        "You must have an active coaching booking to join this conversation.");
+                }
+
                 await Groups.AddToGroupAsync(
                     Context.ConnectionId,
                     $"conversation-{conversationId}");
@@ -45,7 +61,7 @@ namespace Engineering_Hub.Hubs
                 return;
             }
 
-            // Instructor can join only if assigned to the Track
+            // Instructor: must be assigned to the conversation's track.
             var isInstructor = await _context.TrackInstructors
                 .AnyAsync(ti =>
                     ti.UserId == userId &&

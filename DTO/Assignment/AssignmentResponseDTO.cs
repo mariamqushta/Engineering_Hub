@@ -11,5 +11,8 @@ namespace Engineering_Hub.DTO
         public DateTime? DueDate { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
+        public string? AttachmentOriginalFileName { get; set; }
+        public long? AttachmentFileSize { get; set; }
+        public bool HasAttachment { get; set; }
     }
 }

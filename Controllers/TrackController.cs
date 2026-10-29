@@ -3,7 +3,8 @@ using Engineering_Hub.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
-
+using System.Security.Claims;
+using Microsoft.AspNetCore.Http;
 namespace Engineering_Hub.Controllers
 {
     [ApiController]
@@ -149,6 +150,26 @@ namespace Engineering_Hub.Controllers
             }
 
             return Ok(result.Message);
+        }
+        // =========================
+        // GET MY ASSIGNED TRACKS
+        // Instructor only
+        // =========================
+        [HttpGet("my-tracks")]
+        [Authorize(Roles = "Instructor")]
+        public async Task<IActionResult> GetMyTracks()
+        {
+            var instructorId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (string.IsNullOrEmpty(instructorId))
+            {
+                return Unauthorized();
+            }
+
+            // We will connect this call to your existing TrackService next.
+            var tracks = await _trackService.GetTracksByInstructorAsync(instructorId);
+
+            return Ok(tracks);
         }
     }
 }

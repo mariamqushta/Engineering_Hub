@@ -52,39 +52,64 @@ namespace Engineering_Hub.Services
                 );
             }
 
-            // 3. Check previous lesson
-            if (lesson.Order > 1)
+            // Check whether this lesson is unlocked.
+            bool isUnlocked = _unitOfWork.LessonUnlockrepo
+                .GetByCondition(u =>
+                    u.StudentId == studentId &&
+                    u.LessonId == lessonId)
+                .Any();
+
+            // The first lesson is unlocked automatically.
+            var firstLesson = _unitOfWork.Lessonrepo
+                .GetByCondition(l => l.TrackId == lesson.TrackId)
+                .OrderBy(l => l.Order)
+                .FirstOrDefault();
+
+            if (firstLesson?.Id == lessonId)
             {
-                var previousLesson = _unitOfWork.Lessonrepo
-                    .GetByCondition(l =>
-                        l.TrackId == lesson.TrackId &&
-                        l.Order == lesson.Order - 1)
-                    .FirstOrDefault();
-
-                if (previousLesson == null)
-                {
-                    return (
-                        false,
-                        "Previous lesson not found."
-                    );
-                }
-
-                var previousProgress =
-                    _unitOfWork.LessonProgressrepo
-                        .GetByCondition(p =>
-                            p.StudentId == studentId &&
-                            p.LessonId == previousLesson.Id &&
-                            p.IsCompleted)
-                        .FirstOrDefault();
-
-                if (previousProgress == null)
-                {
-                    return (
-                        false,
-                        "You must complete the previous lesson first."
-                    );
-                }
+                isUnlocked = true;
             }
+
+            if (!isUnlocked)
+            {
+                return (
+                    false,
+                    "You must unlock this lesson before completing it."
+                );
+            }
+            //// 3. Check previous lesson
+            //if (lesson.Order > 1)
+            //{
+            //    var previousLesson = _unitOfWork.Lessonrepo
+            //        .GetByCondition(l =>
+            //            l.TrackId == lesson.TrackId &&
+            //            l.Order == lesson.Order - 1)
+            //        .FirstOrDefault();
+
+            //    if (previousLesson == null)
+            //    {
+            //        return (
+            //            false,
+            //            "Previous lesson not found."
+            //        );
+            //    }
+
+            //    var previousProgress =
+            //        _unitOfWork.LessonProgressrepo
+            //            .GetByCondition(p =>
+            //                p.StudentId == studentId &&
+            //                p.LessonId == previousLesson.Id &&
+            //                p.IsCompleted)
+            //            .FirstOrDefault();
+
+            //    if (previousProgress == null)
+            //    {
+            //        return (
+            //            false,
+            //            "You must complete the previous lesson first."
+            //        );
+            //    }
+            //}
 
             // 4. Check assignments
             var assignments =
@@ -117,6 +142,37 @@ namespace Engineering_Hub.Services
                         "All assignments must be graded before completing this lesson."
                     );
                 }
+            }
+
+            // The student must pass the End-of-Lesson quiz.
+            var endOfLessonQuiz = _unitOfWork.LessonQuizrepo
+                .GetByCondition(q =>
+                    q.LessonId == lessonId &&
+                    q.Type == QuizType.EndOfLesson &&
+                    q.IsActive)
+                .FirstOrDefault();
+
+            if (endOfLessonQuiz == null)
+            {
+                return (
+                    false,
+                    "This lesson does not have an active End-of-Lesson quiz."
+                );
+            }
+
+            var passedQuiz = _unitOfWork.QuizAttemptrepo
+                .GetByCondition(a =>
+                    a.LessonQuizId == endOfLessonQuiz.Id &&
+                    a.StudentId == studentId &&
+                    a.Passed)
+                .Any();
+
+            if (!passedQuiz)
+            {
+                return (
+                    false,
+                    "You must pass the End-of-Lesson quiz before completing this lesson."
+                );
             }
 
             // 5. Find current lesson progress
