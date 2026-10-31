@@ -26,5 +26,8 @@ secrets.json
 # Uploaded files
 wwwroot/uploads/
 
-#App_Data/
+# Uploaded files and generated certificates
+App_Data/
+PrivateUploads/
+wwwroot/uploads/
 PrivateUploads/
