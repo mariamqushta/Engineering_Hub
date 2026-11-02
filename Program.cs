@@ -71,17 +71,22 @@ builder.Services.AddAutoMapper(cfg =>
 });
 
 
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AngularPolicy", policy =>
     {
         policy
-            .WithOrigins("http://localhost:4200")
+            .WithOrigins(
+                "http://localhost:4200",
+                "https://engineering-hub-ui-ashen.vercel.app"
+            )
             .AllowAnyHeader()
             .AllowAnyMethod()
             .AllowCredentials();
     });
 });
+
 
 
 builder.Services.AddControllers()
