@@ -73,17 +73,22 @@ builder.Services.AddAutoMapper(cfg =>
 });
 
 
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AngularPolicy", policy =>
     {
         policy
-            .WithOrigins("http://localhost:4200")
+            .WithOrigins(
+                "http://localhost:4200",
+                "https://engineering-hub-ui-ashen.vercel.app"
+            )
             .AllowAnyHeader()
             .AllowAnyMethod()
             .AllowCredentials();
     });
 });
+
 
 
 builder.Services.AddControllers()
@@ -176,9 +181,8 @@ var app = builder.Build();
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
-    //app.MapOpenApi();
-    app.MapSwagger();
-    app.MapSwaggerUI();
+    app.UseSwagger();
+    app.UseSwaggerUI();
 }
 
 
