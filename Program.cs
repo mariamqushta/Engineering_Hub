@@ -55,10 +55,12 @@ builder.Services.AddScoped<
 builder.Services.AddScoped<
     IInteractiveActivityService,
     InteractiveActivityService>();
+builder.Services.AddScoped<IPrivateSessionService, PrivateSessionService>();
 builder.Services.AddScoped<ICoachingService, CoachingService>();
 builder.Services.AddScoped<ITrackCompletionService, TrackCompletionService>();
 builder.Services.AddScoped<ICertificateService, CertificateService>();
 builder.Services.AddScoped<ICertificatePdfService, CertificatePdfService>();
+builder.Services.AddScoped<ISupportChatService, SupportChatService>();
 builder.Services.AddScoped<CalendarService>();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddDbContext<EngineeringHubContext>(options =>
@@ -213,4 +215,5 @@ app.UseAuthorization();
 
 app.MapControllers();
 app.MapHub<CoachingHub>("/coachingHub");
+app.MapHub<SupportChatHub>("/supportChatHub");
 app.Run();

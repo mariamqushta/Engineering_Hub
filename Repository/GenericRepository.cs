@@ -66,7 +66,10 @@ namespace Engineering_Hub.Repository
                 _context.Set<T>().Remove(entity);
             }
         }
-
+        public IQueryable<T> Query()
+        {
+            return _context.Set<T>().AsQueryable();
+        }
         public void Save()
         {
             _context.SaveChanges();

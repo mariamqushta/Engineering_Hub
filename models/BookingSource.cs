@@ -20,6 +20,7 @@
         Finished,
         Cancelled,
         Active,
-        Completed
+        Completed,
+        Missed
     }
 }

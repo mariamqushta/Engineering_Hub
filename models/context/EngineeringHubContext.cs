@@ -37,6 +37,14 @@ namespace Engineering_Hub.models.context
         public DbSet<CoachingConversation> CoachingConversations { get; set; }
         public DbSet<CoachingMessage> CoachingMessages { get; set; }
         public DbSet<Certificate> Certificates { get; set; }
+        // Add with the other DbSets
+        public DbSet<PrivateAvailability> PrivateAvailabilities { get; set; }
+        public DbSet<PrivateArrangement> PrivateArrangements { get; set; }
+        public DbSet<PrivateOccurrence> PrivateOccurrences { get; set; }
+        public DbSet<PrivateRequest> PrivateRequests { get; set; }
+        public DbSet<PrivateReplacement> PrivateReplacements { get; set; }
+        public DbSet<SupportChatConversation> SupportChatConversations { get; set; }
+        public DbSet<SupportChatMessage> SupportChatMessages { get; set; }
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
@@ -268,6 +276,170 @@ namespace Engineering_Hub.models.context
             builder.Entity<InteractiveSchedule>()
             .Property(s => s.Price)
             .HasPrecision(18, 2);
+            // Add at the end of OnModelCreating
+            // =========================
+            // Private Sessions
+            // =========================
+
+            // =========================
+            // Private Sessions
+            // =========================
+
+            // =========================
+            // Private Sessions
+            // =========================
+
+            builder.Entity<PrivateAvailability>(e =>
+            {
+                e.HasOne(x => x.Instructor)
+                    .WithMany()
+                    .HasForeignKey(x => x.InstructorId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                e.HasIndex(x => new { x.InstructorId, x.DayOfWeek });
+            });
+
+            builder.Entity<PrivateArrangement>(e =>
+            {
+                e.HasOne(x => x.Student)
+                    .WithMany()
+                    .HasForeignKey(x => x.StudentId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                e.HasOne(x => x.Instructor)
+                    .WithMany()
+                    .HasForeignKey(x => x.InstructorId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                e.HasOne(x => x.Track)
+                    .WithMany()
+                    .HasForeignKey(x => x.TrackId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                e.HasIndex(x => x.StudentId);
+                e.HasIndex(x => x.InstructorId);
+            });
+
+            builder.Entity<PrivateOccurrence>(e =>
+            {
+                e.HasOne(x => x.Student)
+                    .WithMany()
+                    .HasForeignKey(x => x.StudentId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                e.HasOne(x => x.Instructor)
+                    .WithMany()
+                    .HasForeignKey(x => x.InstructorId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                e.HasOne(x => x.Track)
+                    .WithMany()
+                    .HasForeignKey(x => x.TrackId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                e.HasOne(x => x.PrivateArrangement)
+                    .WithMany(x => x.Occurrences)
+                    .HasForeignKey(x => x.PrivateArrangementId)
+                    .IsRequired(false)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                e.HasIndex(x => x.StartUtc);
+                e.HasIndex(x => x.StudentId);
+                e.HasIndex(x => x.InstructorId);
+
+                // Prevent duplicate generated occurrences.
+                e.HasIndex(x => new { x.PrivateArrangementId, x.StartUtc })
+                    .IsUnique()
+                    .HasFilter("[PrivateArrangementId] IS NOT NULL");
+            });
+
+            builder.Entity<PrivateRequest>(e =>
+            {
+                e.HasOne(x => x.Occurrence)
+                    .WithMany(x => x.Requests)
+                    .HasForeignKey(x => x.OccurrenceId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                e.HasOne<ApplicationUser>()
+                    .WithMany()
+                    .HasForeignKey(x => x.StudentId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                e.HasIndex(x => new
+                {
+                    x.OccurrenceId,
+                    x.RequestType,
+                    x.Status
+                });
+
+                // Only one pending request of each type per occurrence.
+                e.HasIndex(x => new { x.OccurrenceId, x.RequestType })
+                    .IsUnique()
+                    .HasFilter("[Status] = 0");
+            });
+
+            builder.Entity<PrivateReplacement>(e =>
+            {
+                e.HasOne(x => x.MissedOccurrence)
+                    .WithOne(x => x.Replacement)
+                    .HasForeignKey<PrivateReplacement>(x => x.MissedOccurrenceId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                e.HasOne(x => x.ReplacementOccurrence)
+                    .WithMany()
+                    .HasForeignKey(x => x.ReplacementOccurrenceId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                e.HasOne<ApplicationUser>()
+                    .WithMany()
+                    .HasForeignKey(x => x.StudentId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                e.HasOne<ApplicationUser>()
+                    .WithMany()
+                    .HasForeignKey(x => x.AssignedByAdminId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                e.HasIndex(x => x.MissedOccurrenceId)
+                    .IsUnique();
+
+                e.HasIndex(x => x.ReplacementOccurrenceId)
+                    .IsUnique();
+            });
+            // =========================
+            // Admin Support Chats
+            // =========================
+
+            builder.Entity<SupportChatConversation>(e =>
+            {
+                e.HasOne(x => x.Participant)
+                    .WithMany()
+                    .HasForeignKey(x => x.ParticipantId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                // One conversation per participant for each chat type.
+                e.HasIndex(x => new { x.Type, x.ParticipantId })
+                    .IsUnique();
+
+                e.HasIndex(x => x.CreatedAtUtc);
+            });
+
+            builder.Entity<SupportChatMessage>(e =>
+            {
+                e.HasOne(x => x.Conversation)
+                    .WithMany(x => x.Messages)
+                    .HasForeignKey(x => x.ConversationId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                e.HasOne(x => x.Sender)
+                    .WithMany()
+                    .HasForeignKey(x => x.SenderId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                e.HasIndex(x => new { x.ConversationId, x.SentAtUtc });
+
+                e.HasIndex(x => new { x.ConversationId, x.IsRead });
+            });
         }
     }
  }

@@ -38,5 +38,7 @@ namespace Engineering_Hub.models
 
         public ICollection<Workshop> CreatedWorkshops { get; set; }
             = new List<Workshop>();
+        public AccountType AccountType { get; set; } = AccountType.GroupStudent;
+
     }
 }

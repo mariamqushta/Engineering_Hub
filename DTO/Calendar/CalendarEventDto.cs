@@ -10,10 +10,12 @@ namespace Engineering_Hub.DTO.Calendar
         public string Title { get; set; } = string.Empty;
 
         public string EventType { get; set; } = string.Empty;
+        public string? StudentName { get; set; }
 
         public int TrackId { get; set; }
 
         public string TrackTitle { get; set; } = string.Empty;
+        public string? MeetingUrl { get; set; }
 
         public DateTime StartDateTime { get; set; }
 

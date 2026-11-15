@@ -1,4 +1,4 @@
-﻿
+﻿using Engineering_Hub.DTOs.PrivateSessions;
 using Engineering_Hub.models;
 using Engineering_Hub.models.context;
 using Engineering_Hub.Services;
@@ -6,28 +6,34 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
 
 namespace Engineering_Hub.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize(Roles = "Admin,SuperAdmin")]
+    [Authorize(Roles = "Admin")]
     public class AdminController : ControllerBase
     {
         private readonly ITrackBookingService _trackBookingService;
         private readonly EngineeringHubContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly IPrivateSessionService _privateSessions;
 
         public AdminController(
             ITrackBookingService trackBookingService,
             EngineeringHubContext context,
-            UserManager<ApplicationUser> userManager)
+            UserManager<ApplicationUser> userManager,
+            IPrivateSessionService privateSessions)
         {
             _trackBookingService = trackBookingService;
             _context = context;
             _userManager = userManager;
+            _privateSessions = privateSessions;
         }
 
         // GET: api/Admin/instructors
@@ -148,7 +154,7 @@ namespace Engineering_Hub.Controllers
                     user.Bio,
                     user.IsActive,
                     user.CreatedAt,
-
+                    user.AccountType,
                     // Track enrollments
                     trackBookings = trackEnrollments
                         .Where(x => x.StudentId == user.Id)
@@ -528,5 +534,319 @@ namespace Engineering_Hub.Controllers
                 message = "Individual workshop booking rejected successfully."
             });
         }
+        // ---------- Private sessions (admin) ----------
+  
+
+        private string CurrentAdminId => User.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
+
+        private IActionResult PrivateError(Exception ex) => ex switch
+        {
+            KeyNotFoundException => NotFound(new { message = ex.Message }),
+            UnauthorizedAccessException => Forbid(),
+            ArgumentException or InvalidOperationException => BadRequest(new { message = ex.Message }),
+            _ => StatusCode(500, new { message = "An unexpected error occurred." })
+        };
+
+        // POST: api/Admin/private/availability
+
+        // POST: api/Admin/private/availability
+        [HttpPost("private/availability")]
+        public async Task<IActionResult> CreateInstructorAvailability(
+            [FromBody] CreatePrivateAvailabilityDto request)
+        {
+            try
+            {
+                var availability = await _privateSessions.CreateAvailabilityAsync(
+                    CurrentAdminId,
+                    request.InstructorId,
+                    request.DayOfWeek,
+                    request.StartTime,
+                    request.EndTime,
+                    request.ValidFrom,
+                    request.ValidTo);
+
+                return Ok(new PrivateAvailabilityDto
+                {
+                    Id = availability.Id,
+                    InstructorId = availability.InstructorId,
+                    InstructorName = availability.Instructor?.FullName ?? "",
+                    DayOfWeek = availability.DayOfWeek,
+                    StartTime = availability.StartTime,
+                    EndTime = availability.EndTime,
+                    ValidFrom = availability.ValidFrom,
+                    ValidTo = availability.ValidTo,
+                    IsActive = availability.IsActive
+                });
+            }
+            catch (Exception ex) { return PrivateError(ex); }
+        }
+
+        // GET: api/Admin/private/availability/{instructorId}
+        [HttpGet("private/availability/{instructorId}")]
+        public async Task<IActionResult> GetInstructorAvailability(string instructorId)
+        {
+            try
+            {
+                var slots = await _privateSessions.GetInstructorAvailabilityAsync(instructorId);
+
+                return Ok(slots.Select(x => new PrivateAvailabilityDto
+                {
+                    Id = x.Id,
+                    InstructorId = x.InstructorId,
+                    InstructorName = x.Instructor?.FullName ?? "",
+                    DayOfWeek = x.DayOfWeek,
+                    StartTime = x.StartTime,
+                    EndTime = x.EndTime,
+                    ValidFrom = x.ValidFrom,
+                    ValidTo = x.ValidTo,
+                    IsActive = x.IsActive
+                }));
+            }
+            catch (Exception ex) { return PrivateError(ex); }
+        }
+
+        // DELETE: api/Admin/private/availability/{id}
+        [HttpDelete("private/availability/{id:int}")]
+        public async Task<IActionResult> DeactivateInstructorAvailability(int id)
+        {
+            try
+            {
+                await _privateSessions.DeactivateAvailabilityAsync(CurrentAdminId, id);
+                return Ok(new { message = "Availability slot deactivated." });
+            }
+            catch (Exception ex) { return PrivateError(ex); }
+        }
+
+        // POST: api/Admin/private/arrangements
+        [HttpPost("private/arrangements")]
+        public async Task<IActionResult> CreatePrivateArrangement(
+            [FromBody] CreatePrivateArrangementDto request)
+        {
+            try
+            {
+                var arrangement = await _privateSessions.CreateArrangementAsync(
+                   CurrentAdminId,
+                   request.StudentId,
+                   request.InstructorId,
+                   request.TrackId,
+                   request.MeetingLink,
+                   request.DayOfWeek,
+                   request.StartTime,
+                   request.EndTime,
+                   request.StartDate,
+                   request.EndDate);
+
+                return Ok(new PrivateArrangementDto
+                {
+                    Id = arrangement.Id,
+                    StudentId = arrangement.StudentId,
+                    StudentName = arrangement.Student?.FullName ?? "",
+                    InstructorId = arrangement.InstructorId,
+                    InstructorName = arrangement.Instructor?.FullName ?? "",
+                    TrackId = arrangement.TrackId,
+                    TrackTitle = arrangement.Track?.Title ?? "",
+                    DayOfWeek = arrangement.DayOfWeek,
+                    StartTime = arrangement.StartTime,
+                    EndTime = arrangement.EndTime,
+                    StartDate = arrangement.StartDate,
+                    EndDate = arrangement.EndDate,
+                    MeetingLink = arrangement.MeetingLink,
+                    IsActive = arrangement.IsActive,
+                    ApprovalStatus = arrangement.ApprovalStatus
+                });
+            }
+            catch (Exception ex) { return PrivateError(ex); }
+        }
+
+        // POST: api/Admin/private/arrangements/{id}/generate?weeksAhead=12
+        [HttpPost("private/arrangements/{id:int}/generate")]
+        public async Task<IActionResult> GeneratePrivateOccurrences(
+            int id,
+            [FromQuery] int weeksAhead = 12)
+        {
+            try
+            {
+                var created = await _privateSessions.GenerateOccurrencesAsync(id, weeksAhead);
+                return Ok(new { created });
+            }
+            catch (Exception ex) { return PrivateError(ex); }
+        }
+
+        // POST: api/Admin/private/occurrences/{id}/replacement
+        [HttpPost("private/occurrences/{id:int}/replacement")]
+        public async Task<IActionResult> AssignPrivateReplacement(
+            int id,
+            [FromBody] AssignPrivateReplacementDto request)
+        {
+            try
+            {
+                var replacement = await _privateSessions.AssignReplacementAsync(
+                    CurrentAdminId,
+                    request.MeetingLink,
+                    id,
+                    request.StartUtc,
+                    request.EndUtc);
+
+                return Ok(new
+                {
+                    replacement.Id,
+                    replacement.MissedOccurrenceId,
+                    replacement.ReplacementOccurrenceId,
+                    replacement.StudentId,
+                    replacement.AssignedByAdminId,
+                    replacement.AssignedAtUtc
+                });
+            }
+            catch (Exception ex) { return PrivateError(ex); }
+        }
+
+        // GET: api/Admin/private/requests
+        [HttpGet("private/requests")]
+        public async Task<IActionResult> GetPrivateRequests(
+            [FromQuery] BookingApprovalStatus? status = null,
+            [FromQuery] RequestType? requestType = null)
+        {
+            try
+            {
+                var requests = await _privateSessions.GetAdminRequestsAsync(status, requestType);
+
+                return Ok(requests.Select(r => new PrivateRequestDto
+                {
+                    Id = r.Id,
+                    StudentId = r.StudentId,
+                    StudentName = r.Occurrence.Student?.FullName ?? "",
+                    OccurrenceId = r.OccurrenceId,
+                    InstructorName = r.Occurrence.Instructor?.FullName ?? "",
+                    TrackTitle = r.Occurrence.Track?.Title ?? "",
+                    StartUtc = r.Occurrence.StartUtc,
+                    EndUtc = r.Occurrence.EndUtc,
+                    RequestType = r.RequestType,
+                    Status = r.Status,
+                    CreatedAtUtc = r.CreatedAtUtc
+                }));
+            }
+            catch (Exception ex) { return PrivateError(ex); }
+        }
+
+        // PUT: api/Admin/private/requests/{requestId}/review
+        [HttpPut("private/requests/{requestId:int}/review")]
+        public async Task<IActionResult> ReviewPrivateRequest(
+            int requestId,
+            [FromBody] ReviewPrivateRequestDto request)
+        {
+            try
+            {
+                await _privateSessions.ReviewPrivateRequestAsync(
+                    CurrentAdminId,
+                    requestId,
+                    request.Decision);
+
+                return Ok(new
+                {
+                    message = request.Decision == BookingApprovalStatus.Approved
+                        ? "Private session request approved successfully."
+                        : "Private session request rejected successfully."
+                });
+            }
+            catch (Exception ex) { return PrivateError(ex); }
+        }
+
+        // GET: api/Admin/private/arrangements
+        [HttpGet("private/arrangements")]
+        public async Task<IActionResult> GetAllPrivateArrangements()
+        {
+            try
+            {
+                var arrangements = await _privateSessions.GetAllArrangementsAsync();
+
+                return Ok(arrangements.Select(a => new PrivateArrangementDto
+                {
+                    Id = a.Id,
+                    StudentId = a.StudentId,
+                    StudentName = a.Student?.FullName ?? "",
+                    InstructorId = a.InstructorId,
+                    InstructorName = a.Instructor?.FullName ?? "",
+                    TrackId = a.TrackId,
+                    TrackTitle = a.Track?.Title ?? "",
+                    DayOfWeek = a.DayOfWeek,
+                    StartTime = a.StartTime,
+                    EndTime = a.EndTime,
+                    StartDate = a.StartDate,
+                    EndDate = a.EndDate,
+                    MeetingLink = a.MeetingLink,
+                    IsActive = a.IsActive,
+                    ApprovalStatus = a.ApprovalStatus
+                }));
+            }
+            catch (Exception ex) { return PrivateError(ex); }
+        }
+
+        // GET: api/Admin/private/occurrences
+        [HttpGet("private/occurrences")]
+        public async Task<IActionResult> GetPrivateOccurrences(
+            [FromQuery] DateTime? fromUtc,
+            [FromQuery] DateTime? toUtc,
+            [FromQuery] string? studentId,
+            [FromQuery] string? instructorId,
+            [FromQuery] SessionStatus? status)
+        {
+            try
+            {
+                var from = fromUtc ?? DateTime.UtcNow;
+                var to = toUtc ?? DateTime.UtcNow.AddDays(84);
+
+                if (to <= from)
+                    return BadRequest(new { message = "The end date must be after the start date." });
+
+                var occurrences = await _privateSessions.GetAdminOccurrencesAsync(
+                    from, to, studentId, instructorId, status);
+
+                return Ok(occurrences.Select(o => new AdminPrivateOccurrenceDto
+                {
+                    Id = o.Id,
+                    PrivateArrangementId = o.PrivateArrangementId,
+                    StudentId = o.StudentId,
+                    StudentName = o.Student?.FullName ?? "",
+                    InstructorId = o.InstructorId,
+                    InstructorName = o.Instructor?.FullName ?? "",
+                    TrackId = o.TrackId,
+                    TrackTitle = o.Track?.Title ?? "",
+                    StartUtc = o.StartUtc,
+                    EndUtc = o.EndUtc,
+                    Status = o.Status,
+                    IsReplacement = o.Replacement != null
+                }));
+            }
+            catch (Exception ex) { return PrivateError(ex); }
+        }
+
+        // PUT: api/Admin/private/arrangements/{id}/end
+        [HttpPut("private/arrangements/{id:int}/end")]
+        public async Task<IActionResult> EndPrivateArrangement(int id)
+        {
+            try
+            {
+                await _privateSessions.EndArrangementAsync(CurrentAdminId, id);
+                return Ok(new { message = "Private arrangement ended successfully." });
+            }
+            catch (Exception ex) { return PrivateError(ex); }
+        }
+
+        // PUT: api/Admin/private/occurrences/{id}/status
+        [HttpPut("private/occurrences/{id:int}/status")]
+        public async Task<IActionResult> UpdatePrivateOccurrenceStatus(
+            int id,
+            [FromBody] UpdatePrivateOccurrenceStatusDto request)
+        {
+            try
+            {
+                await _privateSessions.UpdateOccurrenceStatusAsync(
+                    CurrentAdminId, id, request.Status);
+
+                return Ok(new { message = "Private occurrence status updated successfully." });
+            }
+            catch (Exception ex) { return PrivateError(ex); }
+        }
+
     }
 }

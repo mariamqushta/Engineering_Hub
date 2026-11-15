@@ -1,7 +1,7 @@
 ﻿using AutoMapper;
 using Engineering_Hub.DTO.BookingDTOs;
 using Engineering_Hub.models;
-using Engineering_Hub.UnitOfWork;
+using Microsoft.AspNetCore.Identity;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,11 +15,14 @@ namespace Engineering_Hub.Services
         private readonly UnitWorkClass _unitOfWork;
         private readonly IMapper _mapper;
 
+        private readonly UserManager<ApplicationUser> _userManager;
         public InteractiveBookingService(
             UnitWorkClass unitWork,
+              UserManager<ApplicationUser> userManager,
             IMapper mapper)
         {
             _unitOfWork = unitWork;
+            _userManager = userManager;
             _mapper = mapper;
         }
 
@@ -27,6 +30,13 @@ namespace Engineering_Hub.Services
             string userId,
             InteractiveBookingDto dto)
         {
+            var user = await _userManager.FindByIdAsync(userId);
+
+            if (user == null)
+                return (false, "User not found.");
+
+            if (user.AccountType == AccountType.PrivateStudent)
+                return (false, "Private student accounts cannot book interactive activities.");
             var activity = _unitOfWork.InteractiveActivityrepo
                 .GetById(dto.InteractiveActivityId);
 

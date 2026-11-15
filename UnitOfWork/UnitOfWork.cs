@@ -2,7 +2,8 @@
 using Engineering_Hub.models.context;
 using Engineering_Hub.Repository;
 using System.Threading.Tasks;
-
+using Microsoft.EntityFrameworkCore.Storage;
+using System;
 namespace Engineering_Hub.UnitOfWork
 {
     public class UnitWork
@@ -33,6 +34,12 @@ namespace Engineering_Hub.UnitOfWork
         GenericRepository<CoachingConversation> _coachingConversationRepo;
         GenericRepository<CoachingMessage> _coachingMessageRepo;
         private GenericRepository<Certificate> _certificateRepo;
+        GenericRepository<PrivateAvailability> _privateAvailabilityRepo;
+        GenericRepository<PrivateArrangement> _privateArrangementRepo;
+        GenericRepository<PrivateOccurrence> _privateOccurrenceRepo;
+        GenericRepository<PrivateRequest> _privateRequestRepo;
+        GenericRepository<PrivateReplacement> _privateReplacementRepo;
+
         public UnitWork(EngineeringHubContext context)
         {
             _context = context;
@@ -142,6 +149,30 @@ namespace Engineering_Hub.UnitOfWork
                 }
 
                 return _workshopRepo;
+            }
+        }
+        public Task<IDbContextTransaction> BeginTransactionAsync()
+        {
+            return _context.Database.BeginTransactionAsync();
+        }
+        public async Task<T> ExecuteInTransactionAsync<T>(Func<Task<T>> operation)
+        {
+            await using var transaction =
+                await _context.Database.BeginTransactionAsync();
+
+            try
+            {
+                var result = await operation();
+
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                return result;
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
             }
         }
 
@@ -361,6 +392,76 @@ namespace Engineering_Hub.UnitOfWork
                 return _certificateRepo;
             }
         }
+        public GenericRepository<PrivateAvailability> PrivateAvailabilityrepo
+        {
+            get
+            {
+                if (_privateAvailabilityRepo == null)
+                {
+                    _privateAvailabilityRepo =
+                        new GenericRepository<PrivateAvailability>(_context);
+                }
+
+                return _privateAvailabilityRepo;
+            }
+        }
+
+        public GenericRepository<PrivateArrangement> PrivateArrangementrepo
+        {
+            get
+            {
+                if (_privateArrangementRepo == null)
+                {
+                    _privateArrangementRepo =
+                        new GenericRepository<PrivateArrangement>(_context);
+                }
+
+                return _privateArrangementRepo;
+            }
+        }
+
+        public GenericRepository<PrivateOccurrence> PrivateOccurrencerepo
+        {
+            get
+            {
+                if (_privateOccurrenceRepo == null)
+                {
+                    _privateOccurrenceRepo =
+                        new GenericRepository<PrivateOccurrence>(_context);
+                }
+
+                return _privateOccurrenceRepo;
+            }
+        }
+
+        public GenericRepository<PrivateRequest> PrivateRequestrepo
+        {
+            get
+            {
+                if (_privateRequestRepo == null)
+                {
+                    _privateRequestRepo =
+                        new GenericRepository<PrivateRequest>(_context);
+                }
+
+                return _privateRequestRepo;
+            }
+        }
+
+        public GenericRepository<PrivateReplacement> PrivateReplacementrepo
+        {
+            get
+            {
+                if (_privateReplacementRepo == null)
+                {
+                    _privateReplacementRepo =
+                        new GenericRepository<PrivateReplacement>(_context);
+                }
+
+                return _privateReplacementRepo;
+            }
+        }
+
         public void DeleteTrackInstructor(TrackInstructor trackInstructor)
         {
             _context.TrackInstructors.Remove(trackInstructor);

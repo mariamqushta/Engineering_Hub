@@ -139,26 +139,54 @@ namespace Engineering_Hub.Controllers
 
         }
 
+
         [HttpPost("Register")]
         public async Task<IActionResult> Register(Registerdto dto)
         {
+            if (dto.Role != "Student" && dto.Role != "Instructor")
+            {
+                return BadRequest("Only Student and Instructor registration is allowed.");
+            }
+
+            if (string.IsNullOrWhiteSpace(dto.UserName) ||
+                string.IsNullOrWhiteSpace(dto.Password) ||
+                string.IsNullOrWhiteSpace(dto.FullName))
+            {
+                return BadRequest("All registration fields are required.");
+            }
+
+            if (!Enum.IsDefined(typeof(AccountType), dto.AccountType))
+            {
+                return BadRequest("Invalid account type.");
+            }
+
             if (!await _roleManager.RoleExistsAsync(dto.Role))
             {
                 return BadRequest("Role does not exist.");
             }
 
-
             var user = _mapper.Map<ApplicationUser>(dto);
+
+            user.AccountType = dto.Role == "Student"
+                ? dto.AccountType
+                : AccountType.GroupStudent;
 
             user.PasswordHash = _passwordHasher.HashPassword(user, dto.Password);
 
             var result = await _userManager.CreateAsync(user);
+
             if (!result.Succeeded)
             {
                 return BadRequest(result.Errors);
             }
 
-            await _userManager.AddToRoleAsync(user, dto.Role);
+            var roleResult = await _userManager.AddToRoleAsync(user, dto.Role);
+
+            if (!roleResult.Succeeded)
+            {
+                await _userManager.DeleteAsync(user);
+                return BadRequest(roleResult.Errors);
+            }
 
             return Ok("User registered successfully.");
         }
@@ -358,6 +386,7 @@ namespace Engineering_Hub.Controllers
                 fullName = user.FullName,
                 roles = roles,
                 profileImageUrl = user.ProfileImageUrl,
+                accountType = user.AccountType
             });
         }
 

@@ -1,33 +1,23 @@
+
 # Visual Studio
 .vs/
 *.user
 *.suo
+*.csproj.user
 
 # Build output
 bin/
 obj/
 
-# User-specific files
-*.csproj.user
-
-# ASP.NET development
+# Local configuration
 appsettings.Local.json
-
-# Secrets
-secrets.json
-
-# ASP.NET configuration containing secrets
 appsettings.json
-appsettings.Local.json
-
-# Secrets
 secrets.json
+
+# User Secrets
+# Keep appsettings.json tracked, but NEVER put real passwords or keys in it.
 
 # Uploaded files
 wwwroot/uploads/
-
-# Uploaded files and generated certificates
 App_Data/
-PrivateUploads/
-wwwroot/uploads/
 PrivateUploads/

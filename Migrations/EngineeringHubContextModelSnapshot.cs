@@ -30,6 +30,9 @@ namespace Engineering_Hub.Migrations
                     b.Property<int>("AccessFailedCount")
                         .HasColumnType("int");
 
+                    b.Property<int>("AccountType")
+                        .HasColumnType("int");
+
                     b.Property<string>("Bio")
                         .HasColumnType("nvarchar(max)");
 
@@ -833,6 +836,72 @@ namespace Engineering_Hub.Migrations
                     b.ToTable("RefreshTokens");
                 });
 
+            modelBuilder.Entity("Engineering_Hub.models.SupportChatConversation", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ParticipantId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAtUtc");
+
+                    b.HasIndex("ParticipantId");
+
+                    b.HasIndex("Type", "ParticipantId")
+                        .IsUnique();
+
+                    b.ToTable("SupportChatConversations");
+                });
+
+            modelBuilder.Entity("Engineering_Hub.models.SupportChatMessage", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ConversationId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsRead")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("SenderId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("SentAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SenderId");
+
+                    b.HasIndex("ConversationId", "IsRead");
+
+                    b.HasIndex("ConversationId", "SentAtUtc");
+
+                    b.ToTable("SupportChatMessages");
+                });
+
             modelBuilder.Entity("Engineering_Hub.models.Track", b =>
                 {
                     b.Property<int>("Id")
@@ -1189,6 +1258,225 @@ namespace Engineering_Hub.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("PrivateArrangement", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ApprovalStatus")
+                        .HasColumnType("int");
+
+                    b.Property<int>("DayOfWeek")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("EndDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<TimeSpan>("EndTime")
+                        .HasColumnType("time");
+
+                    b.Property<string>("InstructorId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("MeetingLink")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("StartDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<TimeSpan>("StartTime")
+                        .HasColumnType("time");
+
+                    b.Property<string>("StudentId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<int>("TrackId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InstructorId");
+
+                    b.HasIndex("StudentId");
+
+                    b.HasIndex("TrackId");
+
+                    b.ToTable("PrivateArrangements");
+                });
+
+            modelBuilder.Entity("PrivateAvailability", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("DayOfWeek")
+                        .HasColumnType("int");
+
+                    b.Property<TimeSpan>("EndTime")
+                        .HasColumnType("time");
+
+                    b.Property<string>("InstructorId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<TimeSpan>("StartTime")
+                        .HasColumnType("time");
+
+                    b.Property<DateTime>("ValidFrom")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("ValidTo")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InstructorId", "DayOfWeek");
+
+                    b.ToTable("PrivateAvailabilities");
+                });
+
+            modelBuilder.Entity("PrivateOccurrence", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("EndUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("InstructorId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("MeetingLink")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("PrivateArrangementId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("StartUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<string>("StudentId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<int>("TrackId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InstructorId");
+
+                    b.HasIndex("StartUtc");
+
+                    b.HasIndex("StudentId");
+
+                    b.HasIndex("TrackId");
+
+                    b.HasIndex("PrivateArrangementId", "StartUtc")
+                        .IsUnique()
+                        .HasFilter("[PrivateArrangementId] IS NOT NULL");
+
+                    b.ToTable("PrivateOccurrences");
+                });
+
+            modelBuilder.Entity("PrivateReplacement", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("AssignedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("AssignedByAdminId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<int>("MissedOccurrenceId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ReplacementOccurrenceId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("StudentId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AssignedByAdminId");
+
+                    b.HasIndex("MissedOccurrenceId")
+                        .IsUnique();
+
+                    b.HasIndex("ReplacementOccurrenceId")
+                        .IsUnique();
+
+                    b.HasIndex("StudentId");
+
+                    b.ToTable("PrivateReplacements");
+                });
+
+            modelBuilder.Entity("PrivateRequest", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("OccurrenceId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("RequestType")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<string>("StudentId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StudentId");
+
+                    b.HasIndex("OccurrenceId", "RequestType")
+                        .IsUnique()
+                        .HasFilter("[Status] = 0");
+
+                    b.HasIndex("OccurrenceId", "RequestType", "Status");
+
+                    b.ToTable("PrivateRequests");
+                });
+
             modelBuilder.Entity("Engineering_Hub.models.Assignment", b =>
                 {
                     b.HasOne("Engineering_Hub.models.Lesson", "Lesson")
@@ -1515,6 +1803,36 @@ namespace Engineering_Hub.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("Engineering_Hub.models.SupportChatConversation", b =>
+                {
+                    b.HasOne("Engineering_Hub.models.ApplicationUser", "Participant")
+                        .WithMany()
+                        .HasForeignKey("ParticipantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Participant");
+                });
+
+            modelBuilder.Entity("Engineering_Hub.models.SupportChatMessage", b =>
+                {
+                    b.HasOne("Engineering_Hub.models.SupportChatConversation", "Conversation")
+                        .WithMany("Messages")
+                        .HasForeignKey("ConversationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Engineering_Hub.models.ApplicationUser", "Sender")
+                        .WithMany()
+                        .HasForeignKey("SenderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Conversation");
+
+                    b.Navigation("Sender");
+                });
+
             modelBuilder.Entity("Engineering_Hub.models.TrackBookingRequest", b =>
                 {
                     b.HasOne("Engineering_Hub.models.ApplicationUser", "Student")
@@ -1664,6 +1982,126 @@ namespace Engineering_Hub.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("PrivateArrangement", b =>
+                {
+                    b.HasOne("Engineering_Hub.models.ApplicationUser", "Instructor")
+                        .WithMany()
+                        .HasForeignKey("InstructorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Engineering_Hub.models.ApplicationUser", "Student")
+                        .WithMany()
+                        .HasForeignKey("StudentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Engineering_Hub.models.Track", "Track")
+                        .WithMany()
+                        .HasForeignKey("TrackId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Instructor");
+
+                    b.Navigation("Student");
+
+                    b.Navigation("Track");
+                });
+
+            modelBuilder.Entity("PrivateAvailability", b =>
+                {
+                    b.HasOne("Engineering_Hub.models.ApplicationUser", "Instructor")
+                        .WithMany()
+                        .HasForeignKey("InstructorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Instructor");
+                });
+
+            modelBuilder.Entity("PrivateOccurrence", b =>
+                {
+                    b.HasOne("Engineering_Hub.models.ApplicationUser", "Instructor")
+                        .WithMany()
+                        .HasForeignKey("InstructorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("PrivateArrangement", "PrivateArrangement")
+                        .WithMany("Occurrences")
+                        .HasForeignKey("PrivateArrangementId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Engineering_Hub.models.ApplicationUser", "Student")
+                        .WithMany()
+                        .HasForeignKey("StudentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Engineering_Hub.models.Track", "Track")
+                        .WithMany()
+                        .HasForeignKey("TrackId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Instructor");
+
+                    b.Navigation("PrivateArrangement");
+
+                    b.Navigation("Student");
+
+                    b.Navigation("Track");
+                });
+
+            modelBuilder.Entity("PrivateReplacement", b =>
+                {
+                    b.HasOne("Engineering_Hub.models.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("AssignedByAdminId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("PrivateOccurrence", "MissedOccurrence")
+                        .WithOne("Replacement")
+                        .HasForeignKey("PrivateReplacement", "MissedOccurrenceId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("PrivateOccurrence", "ReplacementOccurrence")
+                        .WithMany()
+                        .HasForeignKey("ReplacementOccurrenceId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Engineering_Hub.models.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("StudentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("MissedOccurrence");
+
+                    b.Navigation("ReplacementOccurrence");
+                });
+
+            modelBuilder.Entity("PrivateRequest", b =>
+                {
+                    b.HasOne("PrivateOccurrence", "Occurrence")
+                        .WithMany("Requests")
+                        .HasForeignKey("OccurrenceId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Engineering_Hub.models.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("StudentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Occurrence");
+                });
+
             modelBuilder.Entity("Engineering_Hub.models.ApplicationUser", b =>
                 {
                     b.Navigation("AssignmentSubmissions");
@@ -1735,6 +2173,11 @@ namespace Engineering_Hub.Migrations
                     b.Navigation("Options");
                 });
 
+            modelBuilder.Entity("Engineering_Hub.models.SupportChatConversation", b =>
+                {
+                    b.Navigation("Messages");
+                });
+
             modelBuilder.Entity("Engineering_Hub.models.Track", b =>
                 {
                     b.Navigation("Certificates");
@@ -1753,6 +2196,18 @@ namespace Engineering_Hub.Migrations
             modelBuilder.Entity("Engineering_Hub.models.Workshop", b =>
                 {
                     b.Navigation("Bookings");
+                });
+
+            modelBuilder.Entity("PrivateArrangement", b =>
+                {
+                    b.Navigation("Occurrences");
+                });
+
+            modelBuilder.Entity("PrivateOccurrence", b =>
+                {
+                    b.Navigation("Replacement");
+
+                    b.Navigation("Requests");
                 });
 #pragma warning restore 612, 618
         }
