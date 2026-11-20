@@ -17,6 +17,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using System;
+using System.Linq;
 using System.Collections.Generic;
 using System.Security.Claims;
 using System.Text;
@@ -210,7 +211,62 @@ using (var scope = app.Services.CreateScope())
         }
     }
 }
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
 
+    var userManager =
+        services.GetRequiredService<UserManager<ApplicationUser>>();
+
+    var configuration =
+        services.GetRequiredService<IConfiguration>();
+
+    var adminUserName = configuration["InitialAdmin:UserName"];
+    var adminPassword = configuration["InitialAdmin:Password"];
+
+    if (!string.IsNullOrWhiteSpace(adminUserName) &&
+        !string.IsNullOrWhiteSpace(adminPassword))
+    {
+        var admin = await userManager.FindByNameAsync(adminUserName);
+
+        if (admin == null)
+        {
+            admin = new ApplicationUser
+            {
+                UserName = adminUserName,
+                FullName = "System Administrator",
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            var result = await userManager.CreateAsync(admin, adminPassword);
+
+            if (!result.Succeeded)
+            {
+                throw new Exception(
+                    "Initial admin creation failed: " +
+                    string.Join("; ", result.Errors.Select(e => e.Description))
+                );
+            }
+        }
+
+        foreach (var role in new[] { "Admin", "SuperAdmin" })
+        {
+            if (!await userManager.IsInRoleAsync(admin, role))
+            {
+                var result = await userManager.AddToRoleAsync(admin, role);
+
+                if (!result.Succeeded)
+                {
+                    throw new Exception(
+                        $"Failed to assign {role}: " +
+                        string.Join("; ", result.Errors.Select(e => e.Description))
+                    );
+                }
+            }
+        }
+    }
+}
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
