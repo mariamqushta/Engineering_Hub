@@ -1,4 +1,5 @@
-﻿using Engineering_Hub.DTOs.PrivateSessions;
+﻿using Engineering_Hub.DTO.Admin;
+using Engineering_Hub.DTOs.PrivateSessions;
 using Engineering_Hub.models;
 using Engineering_Hub.models.context;
 using Engineering_Hub.Services;
@@ -23,17 +24,22 @@ namespace Engineering_Hub.Controllers
         private readonly EngineeringHubContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IPrivateSessionService _privateSessions;
-
+        private readonly IWorkshopService _workshopService;
+        private readonly IInteractiveActivityService _activityService;
         public AdminController(
-            ITrackBookingService trackBookingService,
-            EngineeringHubContext context,
-            UserManager<ApplicationUser> userManager,
-            IPrivateSessionService privateSessions)
+       ITrackBookingService trackBookingService,
+       EngineeringHubContext context,
+       UserManager<ApplicationUser> userManager,
+       IPrivateSessionService privateSessions,
+       IWorkshopService workshopService,
+       IInteractiveActivityService activityService)
         {
             _trackBookingService = trackBookingService;
             _context = context;
             _userManager = userManager;
             _privateSessions = privateSessions;
+            _workshopService = workshopService;
+            _activityService = activityService;
         }
 
         // GET: api/Admin/instructors
@@ -285,6 +291,7 @@ namespace Engineering_Hub.Controllers
                     place = w.Place,
                     capacity = w.Capacity,
                     status = w.Status,
+                    approvalStatus = w.ApprovalStatus,
                     students = w.Bookings.Select(b => new
                     {
                         userName = b.User.UserName,
@@ -296,6 +303,63 @@ namespace Engineering_Hub.Controllers
                 .ToListAsync();
 
             return Ok(workshops);
+        }
+
+        // PUT: api/Admin/workshops/{id}/approve
+        [HttpPut("workshops/{id}/approve")]
+        public async Task<IActionResult> ApproveWorkshop(int id)
+        {
+            var result = await _workshopService.AdminApproveWorkshopAsync(id);
+
+            if (!result.Success)
+                return BadRequest(new { message = result.Message });
+
+            return Ok(new { message = result.Message });
+        }
+
+
+        // PUT: api/Admin/workshops/{id}/reject
+        [HttpPut("workshops/{id}/reject")]
+        public async Task<IActionResult> RejectWorkshop(int id)
+        {
+            var result = await _workshopService.AdminRejectWorkshopAsync(id);
+
+            if (!result.Success)
+                return BadRequest(new { message = result.Message });
+
+            return Ok(new { message = result.Message });
+        }
+
+
+        // PUT: api/Admin/workshops/{id}/reschedule
+        [HttpPut("workshops/{id}/reschedule")]
+        public async Task<IActionResult> RescheduleWorkshop(
+            int id,
+            [FromBody] RescheduleActivityDTO request)
+        {
+            var result = await _workshopService.AdminRescheduleWorkshopAsync(
+                id,
+                request.Date,
+                request.StartTime,
+                request.EndTime);
+
+            if (!result.Success)
+                return BadRequest(new { message = result.Message });
+
+            return Ok(new { message = result.Message });
+        }
+
+
+        // PUT: api/Admin/workshops/{id}/cancel
+        [HttpPut("workshops/{id}/cancel")]
+        public async Task<IActionResult> CancelWorkshop(int id)
+        {
+            var result = await _workshopService.AdminCancelWorkshopAsync(id);
+
+            if (!result.Success)
+                return BadRequest(new { message = result.Message });
+
+            return Ok(new { message = result.Message });
         }
 
 
@@ -324,6 +388,8 @@ namespace Engineering_Hub.Controllers
                     meetingUrl = a.MeetingUrl,
                     capacity = a.Capacity,
                     status = a.Status,
+                    approvalStatus = a.ApprovalStatus,
+                    interactiveScheduleId = a.InteractiveScheduleId,
                     students = a.Bookings.Select(b => new
                     {
                         userName = b.User.UserName,
@@ -336,7 +402,88 @@ namespace Engineering_Hub.Controllers
 
             return Ok(activities);
         }
+
+
+
+        // Approve one interactive activity
+        [HttpPut("interactive-activities/{id}/approve")]
+        public async Task<IActionResult> ApproveInteractiveActivity(int id)
+        {
+            var result = await _activityService.AdminApproveActivityAsync(id);
+
+            if (!result.Success)
+                return BadRequest(new { message = result.Message });
+
+            return Ok(new { message = result.Message });
+        }
+
+        // Reject one interactive activity
+        [HttpPut("interactive-activities/{id}/reject")]
+        public async Task<IActionResult> RejectInteractiveActivity(int id)
+        {
+            var result = await _activityService.AdminRejectActivityAsync(id);
+
+            if (!result.Success)
+                return BadRequest(new { message = result.Message });
+
+            return Ok(new { message = result.Message });
+        }
+
+        // Reschedule one interactive activity
+        [HttpPut("interactive-activities/{id}/reschedule")]
+        public async Task<IActionResult> RescheduleInteractiveActivity(
+            int id,
+            [FromBody] RescheduleActivityDTO request)
+        {
+            var result = await _activityService.AdminRescheduleActivityAsync(
+                id, request.Date, request.StartTime, request.EndTime);
+
+            if (!result.Success)
+                return BadRequest(new { message = result.Message });
+
+            return Ok(new { message = result.Message });
+        }
+
+        // Cancel one interactive activity
+        [HttpPut("interactive-activities/{id}/cancel")]
+        public async Task<IActionResult> CancelInteractiveActivity(int id)
+        {
+            var result = await _activityService.AdminCancelActivityAsync(id);
+
+            if (!result.Success)
+                return BadRequest(new { message = result.Message });
+
+            return Ok(new { message = result.Message });
+        }
+
+        // Approve all pending activities in a recurring schedule
+        [HttpPut("interactive-schedules/{scheduleId}/approve")]
+        public async Task<IActionResult> ApproveInteractiveSchedule(int scheduleId)
+        {
+            var result = await _activityService.AdminApproveScheduleAsync(scheduleId);
+
+            if (!result.Success)
+                return BadRequest(new { message = result.Message });
+
+            return Ok(new { message = result.Message });
+        }
+
+        // Reject all activities in a recurring schedule
+        [HttpPut("interactive-schedules/{scheduleId}/reject")]
+        public async Task<IActionResult> RejectInteractiveSchedule(int scheduleId)
+        {
+            var result = await _activityService.AdminRejectScheduleAsync(scheduleId);
+
+            if (!result.Success)
+                return BadRequest(new { message = result.Message });
+
+            return Ok(new { message = result.Message });
+        }
         // GET: api/Admin/pending-interactive-bookings
+
+
+
+
         [HttpGet("pending-interactive-bookings")]
         public async Task<IActionResult> GetPendingInteractiveBookings()
         {

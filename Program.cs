@@ -81,6 +81,7 @@ builder.Services.AddCors(options =>
         policy
             .WithOrigins(
                 "http://localhost:4200",
+                "http://localhost:62471",
                 "https://engineering-hub-ui-ashen.vercel.app"
             )
             .AllowAnyHeader()

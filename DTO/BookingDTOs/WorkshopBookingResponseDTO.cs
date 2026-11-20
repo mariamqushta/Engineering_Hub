@@ -20,6 +20,7 @@ namespace Engineering_Hub.DTO.BookingDTOs
         public int TrackId { get; set; }
         public string Title { get; set; }
         public string? Description { get; set; }
+        public ActivityApprovalStatus ApprovalStatus { get; set; }
         public string Place { get; set; }
         public int AvailableCapacity { get; set; }
         public DateTime Date { get; set; }

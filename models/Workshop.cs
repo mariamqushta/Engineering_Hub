@@ -25,7 +25,7 @@ namespace Engineering_Hub.models
         public TimeSpan EndTime { get; set; }
 
         public int Capacity { get; set; }
-
+        public ActivityApprovalStatus ApprovalStatus { get; set; }
         public SessionStatus Status { get; set; }
 
 

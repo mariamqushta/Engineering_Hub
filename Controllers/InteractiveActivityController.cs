@@ -190,7 +190,23 @@ namespace Engineering_Hub.Controllers
 
             return Ok(result.Message);
         }
+        // GET ACTIVITIES BELONGING TO THE LOGGED-IN INSTRUCTOR
+        [HttpGet("Instructor")]
+        [Authorize(Roles = "Instructor")]
+        public async Task<IActionResult> GetActivitiesByInstructor()
+        {
+            var instructorId =
+                User.FindFirstValue(ClaimTypes.NameIdentifier);
 
+            if (instructorId == null)
+                return Unauthorized();
+
+            var activities =
+                await _activityService.GetActivitiesByInstructorAsync(
+                    instructorId);
+
+            return Ok(activities);
+        }
 
     }
 }

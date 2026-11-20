@@ -3,26 +3,129 @@ using Engineering_Hub.DTO.BookingDTOs;
 using Engineering_Hub.DTO.InteractiveActivity;
 using Engineering_Hub.models;
 using Engineering_Hub.UnitOfWork;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Hosting;
 using System;
+using Microsoft.Extensions.Configuration;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-
 namespace Engineering_Hub.Services
 {
     public class InteractiveActivityService : IInteractiveActivityService
     {
         private readonly UnitWork _unitWork;
         private readonly IMapper _mapper;
-
+        private readonly IConfiguration _config;
+        private readonly IWebHostEnvironment _environment;
         public InteractiveActivityService(
-            UnitWork unitWork,
-            IMapper mapper)
+         UnitWork unitWork,
+         IMapper mapper,
+         IWebHostEnvironment environment,
+         IConfiguration config)
         {
             _unitWork = unitWork;
             _mapper = mapper;
+            _environment = environment;
+            _config = config;
         }
 
+        private TimeZoneInfo AdminTimeZone =>
+    TimeZoneInfo.FindSystemTimeZoneById(
+        _config["PrivateSessions:AdminTimeZoneId"]
+        ?? throw new InvalidOperationException(
+            "PrivateSessions:AdminTimeZoneId is not configured."));
+
+        private DateTime ConvertEgyptTimeToUtc(DateTime date, TimeSpan time)
+        {
+            var localDateTime = DateTime.SpecifyKind(
+                date.Date.Add(time),
+                DateTimeKind.Unspecified);
+
+            return TimeZoneInfo.ConvertTimeToUtc(
+                localDateTime,
+                AdminTimeZone);
+        }
+
+
+        private string? CheckInstructorScheduleConflict(
+            string instructorId,
+            DateTime date,
+            TimeSpan startTime,
+            TimeSpan endTime,
+            int? excludedActivityId = null)
+        {
+            var newStartUtc = ConvertEgyptTimeToUtc(date, startTime);
+            var newEndUtc = ConvertEgyptTimeToUtc(date, endTime);
+
+            // 1. Check other Interactive Activities.
+            var activities = _unitWork.InteractiveActivityrepo
+                .GetByCondition(x =>
+                    x.InstructorId == instructorId &&
+                    x.Status != SessionStatus.Cancelled &&
+                    (x.ApprovalStatus == ActivityApprovalStatus.Pending ||
+                     x.ApprovalStatus == ActivityApprovalStatus.Approved) &&
+                    (!excludedActivityId.HasValue ||
+                     x.Id != excludedActivityId.Value))
+                .ToList();
+
+            foreach (var activity in activities)
+            {
+                var existingStartUtc = ConvertEgyptTimeToUtc(
+                    activity.Date, activity.StartTime);
+
+                var existingEndUtc = ConvertEgyptTimeToUtc(
+                    activity.Date, activity.EndTime);
+
+                if (existingStartUtc < newEndUtc &&
+                    existingEndUtc > newStartUtc)
+                {
+                    return "The instructor already has an interactive activity during this time.";
+                }
+            }
+
+            // 2. Check Workshops.
+            var workshops = _unitWork.Workshoprepo
+                .GetByCondition(x =>
+                    x.InstructorId == instructorId &&
+                    x.Status != SessionStatus.Cancelled &&
+                    (x.ApprovalStatus == ActivityApprovalStatus.Pending ||
+                     x.ApprovalStatus == ActivityApprovalStatus.Approved))
+                .ToList();
+
+            foreach (var workshop in workshops)
+            {
+                var existingStartUtc = ConvertEgyptTimeToUtc(
+                    workshop.Date, workshop.StartTime);
+
+                var existingEndUtc = ConvertEgyptTimeToUtc(
+                    workshop.Date, workshop.EndTime);
+
+                if (existingStartUtc < newEndUtc &&
+                    existingEndUtc > newStartUtc)
+                {
+                    return "The instructor already has a workshop during this time.";
+                }
+            }
+
+            // 3. Check Private Session occurrences.
+            var privateOccurrences = _unitWork.PrivateOccurrencerepo
+                .GetByCondition(x =>
+                    x.InstructorId == instructorId &&
+                    x.Status != SessionStatus.Cancelled)
+                .ToList();
+
+            foreach (var occurrence in privateOccurrences)
+            {
+                if (occurrence.StartUtc < newEndUtc &&
+                    occurrence.EndUtc > newStartUtc)
+                {
+                    return "The instructor already has a private session during this time.";
+                }
+            }
+
+            return null;
+        }
 
         // CREATE
         public async Task<InteractiveActivityResponseDTO?> CreateActivityAsync(
@@ -61,11 +164,22 @@ namespace Engineering_Hub.Services
             // 6. Validate date
             if (dto.Date.Date < DateTime.UtcNow.Date)
                 return null;
+
+            var conflict = CheckInstructorScheduleConflict(
+    instructorId,
+    dto.Date,
+    dto.StartTime,
+    dto.EndTime);
+
+            if (conflict != null)
+            {
+                return null;
+            }
             var activity = _mapper.Map<InteractiveActivity>(dto);
             activity.InstructorId = instructorId;
             activity.Status = SessionStatus.Scheduled;
-            
 
+            activity.ApprovalStatus = ActivityApprovalStatus.Pending;
             // 9. Add
             _unitWork.InteractiveActivityrepo.add(activity);
 
@@ -83,8 +197,11 @@ namespace Engineering_Hub.Services
             GetActivitiesByTrackAsync(int trackId)
         {
             var activities = _unitWork.InteractiveActivityrepo
-                .GetByCondition(x => x.TrackId == trackId)
-                .ToList();
+                  .GetByCondition(x =>
+                      x.TrackId == trackId &&
+                      x.Status != SessionStatus.Cancelled &&
+                      x.ApprovalStatus == ActivityApprovalStatus.Approved)
+                  .ToList();
 
             var result = _mapper.Map<List<InteractiveActivityResponseDTO>>(
                 activities);
@@ -125,7 +242,11 @@ namespace Engineering_Hub.Services
             if (activity.Status == SessionStatus.Cancelled)
                 return (false,
                     "Cancelled activity cannot be updated.");
+            if (activity.InstructorId != instructorId)
+                return (false, "You are not authorized to edit this activity.");
 
+            if (dto.TrackId != activity.TrackId)
+                return (false, "An activity's track cannot be changed.");
             // 3. Check Track
             var track = _unitWork.Trackrepo
                 .GetById(dto.TrackId);
@@ -164,9 +285,20 @@ namespace Engineering_Hub.Services
             if (dto.Date.Date < DateTime.UtcNow.Date)
                 return (false,
                     "Activity date cannot be in the past.");
+            // 9. Check instructor schedule conflicts
+            var conflict = CheckInstructorScheduleConflict(
+                instructorId,
+                dto.Date,
+                dto.StartTime,
+                dto.EndTime,
+                activity.Id);
 
+            if (conflict != null)
+                return (false, conflict);
             // 9. Map DTO → existing entity
             _mapper.Map(dto, activity);
+            // Instructor edits require Admin approval again.
+            activity.ApprovalStatus = ActivityApprovalStatus.Pending;
 
             // Status remains unchanged
 
@@ -191,7 +323,8 @@ namespace Engineering_Hub.Services
             if (activity == null)
                 return (false,
                     "Interactive activity not found.");
-
+            if (activity.InstructorId != instructorId)
+                return (false, "You are not authorized to cancel this activity.");
             // 2. Check instructor assignment
             var instructor = _unitWork.TrackInstructorrepo
                 .GetByCondition(x =>
@@ -241,21 +374,25 @@ namespace Engineering_Hub.Services
                 return null;
             }
 
-            var hasOccurrence = false;
+            var futureDates = new List<DateTime>();
+            var nowUtc = DateTime.UtcNow;
 
             for (var date = dto.StartDate.Date;
                  date <= dto.EndDate.Date;
                  date = date.AddDays(1))
             {
-                if (days.Contains(date.DayOfWeek) &&
-                    date.Add(dto.StartTime) > DateTime.UtcNow)
-                {
-                    hasOccurrence = true;
-                    break;
-                }
+                if (!days.Contains(date.DayOfWeek))
+                    continue;
+
+                var occurrenceStartUtc = ConvertEgyptTimeToUtc(
+                    date,
+                    dto.StartTime);
+
+                if (occurrenceStartUtc > nowUtc)
+                    futureDates.Add(date);
             }
 
-            if (!hasOccurrence)
+            if (futureDates.Count == 0)
                 return null;
 
             var track = _unitWork.Trackrepo.GetById(dto.TrackId);
@@ -271,7 +408,18 @@ namespace Engineering_Hub.Services
 
             if (instructor == null)
                 return null;
+            // Check every future occurrence before creating the schedule.
+            foreach (var date in futureDates)
+            {
+                var conflict = CheckInstructorScheduleConflict(
+                    instructorId,
+                    date,
+                    dto.StartTime,
+                    dto.EndTime);
 
+                if (conflict != null)
+                    return null;
+            }
             var schedule = new InteractiveSchedule
             {
                 TrackId = dto.TrackId,
@@ -295,9 +443,7 @@ namespace Engineering_Hub.Services
             await _unitWork.SaveAsync();
 
             // Generate an activity for each selected weekday.
-            for (var date = schedule.StartDate;
-                 date <= schedule.EndDate;
-                 date = date.AddDays(1))
+            foreach (var date in futureDates)
             {
                 if (!days.Contains(date.DayOfWeek))
                     continue;
@@ -315,6 +461,7 @@ namespace Engineering_Hub.Services
                     StartTime = schedule.StartTime,
                     EndTime = schedule.EndTime,
                     Status = SessionStatus.Scheduled,
+                    ApprovalStatus = ActivityApprovalStatus.Pending,
                     InteractiveScheduleId = schedule.Id
                 };
 
@@ -396,7 +543,7 @@ namespace Engineering_Hub.Services
                  date = date.AddDays(1))
             {
                 if (days.Contains(date.DayOfWeek) &&
-                    date.Add(dto.StartTime) > now)
+      ConvertEgyptTimeToUtc(date, dto.StartTime) > now)
                 {
                     desiredDates.Add(date);
                 }
@@ -405,7 +552,62 @@ namespace Engineering_Hub.Services
             if (desiredDates.Count == 0)
                 return (false,
                     "The selected date range contains no future sessions.");
+            // Retrieve existing occurrences before making any changes.
+            var existingActivities = _unitWork.InteractiveActivityrepo
+                .GetByCondition(a =>
+                    a.InteractiveScheduleId == scheduleId)
+                .ToList();
 
+            // Validate ALL future occurrences before modifying the schedule.
+            foreach (var date in desiredDates)
+            {
+                var existingOccurrence = existingActivities
+                    .FirstOrDefault(a =>
+                        a.Date.Date == date &&
+                        a.Status != SessionStatus.Cancelled &&
+                        a.Status != SessionStatus.Finished &&
+                        a.Status != SessionStatus.Completed);
+
+                int? excludedActivityId = null;
+
+                if (existingOccurrence != null)
+                {
+                    var hasBookings = _unitWork.InteractiveBookingrepo
+                        .GetByCondition(b =>
+                            b.InteractiveActivityId == existingOccurrence.Id &&
+                            b.Status != SessionStatus.Cancelled &&
+                            b.ApprovalStatus != BookingApprovalStatus.Rejected)
+                        .Any();
+
+                    var timeChanged =
+                        existingOccurrence.StartTime != dto.StartTime ||
+                        existingOccurrence.EndTime != dto.EndTime;
+
+                    // Exclude the existing occurrence only if it will be
+                    // updated in place.
+                    //
+                    // If it has bookings and its time changes, it must remain
+                    // in the conflict check because it will be preserved
+                    // as an independent session.
+                    if (!(hasBookings && timeChanged))
+                    {
+                        excludedActivityId = existingOccurrence.Id;
+                    }
+                }
+
+                var conflict = CheckInstructorScheduleConflict(
+                    instructorId,
+                    date,
+                    dto.StartTime,
+                    dto.EndTime,
+                    excludedActivityId);
+
+                if (conflict != null)
+                {
+                    return (false,
+                        $"Schedule update rejected. {conflict}");
+                }
+            }
             // Update the recurring schedule itself.
             schedule.Title = dto.Title.Trim();
             schedule.Description = dto.Description;
@@ -419,15 +621,17 @@ namespace Engineering_Hub.Services
             schedule.StartTime = dto.StartTime;
             schedule.EndTime = dto.EndTime;
 
-            var existingActivities = _unitWork.InteractiveActivityrepo
-                .GetByCondition(a =>
-                    a.InteractiveScheduleId == scheduleId);
+            //var existingActivities = _unitWork.InteractiveActivityrepo
+            //    .GetByCondition(a =>
+            //        a.InteractiveScheduleId == scheduleId);
 
             // Update or cancel existing future occurrences.
             foreach (var activity in existingActivities)
             {
                 var occurrenceDate = activity.Date.Date;
-                var occurrenceStart = occurrenceDate.Add(activity.StartTime);
+                var occurrenceStart = ConvertEgyptTimeToUtc(
+    occurrenceDate,
+    activity.StartTime);
 
                 // Never change past or already completed occurrences.
                 if (occurrenceStart <= now ||
@@ -477,6 +681,7 @@ namespace Engineering_Hub.Services
                 activity.MeetingUrl = schedule.MeetingUrl;
                 activity.StartTime = schedule.StartTime;
                 activity.EndTime = schedule.EndTime;
+                activity.ApprovalStatus = ActivityApprovalStatus.Pending;
             }
 
             // Create occurrences for newly selected future dates.
@@ -505,7 +710,8 @@ namespace Engineering_Hub.Services
                     Date = date,
                     StartTime = schedule.StartTime,
                     EndTime = schedule.EndTime,
-                    Status = SessionStatus.Scheduled
+                    Status = SessionStatus.Scheduled,
+                    ApprovalStatus = ActivityApprovalStatus.Pending
                 };
 
                 _unitWork.InteractiveActivityrepo.add(activity);
@@ -545,8 +751,9 @@ namespace Engineering_Hub.Services
 
             foreach (var activity in activities)
             {
-                var occurrenceStart = activity.Date.Date
-                    .Add(activity.StartTime);
+                var occurrenceStart = ConvertEgyptTimeToUtc(
+    activity.Date,
+    activity.StartTime);
 
                 if (occurrenceStart <= now ||
                     activity.Status == SessionStatus.Cancelled ||
@@ -578,8 +785,189 @@ namespace Engineering_Hub.Services
             return (true,
                 "Recurring schedule ended. Future unbooked sessions were cancelled.");
         }
+        // ADMIN: APPROVE INDIVIDUAL ACTIVITY
+        public async Task<(bool Success, string Message)>
+            AdminApproveActivityAsync(int id)
+        {
+            var activity = _unitWork.InteractiveActivityrepo.GetById(id);
+
+            if (activity == null)
+                return (false, "Interactive activity not found.");
+
+            if (activity.Status == SessionStatus.Cancelled)
+                return (false, "Cancelled activities cannot be approved.");
+
+            activity.ApprovalStatus = ActivityApprovalStatus.Approved;
+
+            await _unitWork.SaveAsync();
+
+            return (true, "Interactive activity approved successfully.");
+        }
 
 
+        // ADMIN: REJECT INDIVIDUAL ACTIVITY
+        public async Task<(bool Success, string Message)>
+            AdminRejectActivityAsync(int id)
+        {
+            var activity = _unitWork.InteractiveActivityrepo.GetById(id);
+
+            if (activity == null)
+                return (false, "Interactive activity not found.");
+
+            activity.ApprovalStatus = ActivityApprovalStatus.Rejected;
+
+            await _unitWork.SaveAsync();
+
+            return (true, "Interactive activity rejected successfully.");
+        }
+
+
+        // ADMIN: RESCHEDULE INDIVIDUAL ACTIVITY
+        public async Task<(bool Success, string Message)>
+            AdminRescheduleActivityAsync(
+                int id,
+                DateTime date,
+                TimeSpan startTime,
+                TimeSpan endTime)
+        {
+            var activity = _unitWork.InteractiveActivityrepo.GetById(id);
+
+            if (activity == null)
+                return (false, "Interactive activity not found.");
+
+            if (activity.Status == SessionStatus.Cancelled)
+                return (false, "Cancelled activities cannot be rescheduled.");
+
+            if (date.Date < DateTime.UtcNow.Date)
+                return (false, "Activity date cannot be in the past.");
+
+            if (endTime <= startTime)
+                return (false, "End time must be after start time.");
+
+            activity.Date = date.Date;
+            activity.StartTime = startTime;
+            activity.EndTime = endTime;
+
+            // Admin rescheduling does not reset approval status.
+            // Existing bookings and schedule relationships are preserved.
+
+            await _unitWork.SaveAsync();
+
+            return (true, "Interactive activity rescheduled successfully.");
+        }
+
+
+        // ADMIN: CANCEL INDIVIDUAL ACTIVITY
+        public async Task<(bool Success, string Message)>
+            AdminCancelActivityAsync(int id)
+        {
+            var activity = _unitWork.InteractiveActivityrepo.GetById(id);
+
+            if (activity == null)
+                return (false, "Interactive activity not found.");
+
+            if (activity.Status == SessionStatus.Cancelled)
+                return (false, "Interactive activity is already cancelled.");
+
+            activity.Status = SessionStatus.Cancelled;
+
+            // ApprovalStatus remains independent of SessionStatus.
+            // Existing bookings are preserved.
+
+            await _unitWork.SaveAsync();
+
+            return (true, "Interactive activity cancelled successfully.");
+        }
+
+
+        // ADMIN: APPROVE A RECURRING SCHEDULE
+        public async Task<(bool Success, string Message)>
+            AdminApproveScheduleAsync(int scheduleId)
+        {
+            var schedule = _unitWork.InteractiveScheduleRepo.GetById(scheduleId);
+
+            if (schedule == null)
+                return (false, "Recurring schedule not found.");
+
+            var activities = _unitWork.InteractiveActivityrepo
+                .GetByCondition(a => a.InteractiveScheduleId == scheduleId)
+                .ToList();
+
+            if (!activities.Any())
+                return (false, "This schedule has no generated activities.");
+
+            foreach (var activity in activities)
+            {
+                // Never approve cancelled or individually rejected occurrences.
+                if (activity.Status == SessionStatus.Cancelled)
+                    continue;
+
+                if (activity.ApprovalStatus == ActivityApprovalStatus.Pending)
+                    activity.ApprovalStatus = ActivityApprovalStatus.Approved;
+            }
+
+            await _unitWork.SaveAsync();
+
+            return (true, "Pending activities in the recurring schedule were approved.");
+        }
+
+
+        // ADMIN: REJECT A RECURRING SCHEDULE
+        public async Task<(bool Success, string Message)>
+            AdminRejectScheduleAsync(int scheduleId)
+        {
+            var schedule = _unitWork.InteractiveScheduleRepo.GetById(scheduleId);
+
+            if (schedule == null)
+                return (false, "Recurring schedule not found.");
+
+            var activities = _unitWork.InteractiveActivityrepo
+                .GetByCondition(a => a.InteractiveScheduleId == scheduleId)
+                .ToList();
+
+            if (!activities.Any())
+                return (false, "This schedule has no generated activities.");
+
+            foreach (var activity in activities)
+            {
+                // Keep cancelled sessions cancelled.
+                if (activity.Status == SessionStatus.Cancelled)
+                    continue;
+
+                activity.ApprovalStatus = ActivityApprovalStatus.Rejected;
+            }
+
+            await _unitWork.SaveAsync();
+
+            return (true, "Recurring schedule activities were rejected.");
+        }
+        // GET ALL ACTIVITIES CREATED BY THE LOGGED-IN INSTRUCTOR
+        public async Task<List<InteractiveActivityResponseDTO>>
+            GetActivitiesByInstructorAsync(string instructorId)
+        {
+            var activities = _unitWork.InteractiveActivityrepo
+                .GetByCondition(x => x.InstructorId == instructorId)
+                .ToList();
+
+            var result = _mapper.Map<List<InteractiveActivityResponseDTO>>(
+                activities);
+
+            foreach (var activity in result)
+            {
+                var currentBookings = _unitWork.InteractiveBookingrepo
+                    .GetByCondition(b =>
+                        b.InteractiveActivityId == activity.Id &&
+                        b.Status != SessionStatus.Cancelled &&
+                        b.ApprovalStatus != BookingApprovalStatus.Rejected)
+                    .Count();
+
+                activity.AvailableCapacity = Math.Max(
+                    0,
+                    activity.Capacity - currentBookings);
+            }
+
+            return result;
+        }
 
     }
 }

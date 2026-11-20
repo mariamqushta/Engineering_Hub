@@ -14,6 +14,7 @@ namespace Engineering_Hub.DTO.BookingDTOs
         public TimeSpan EndTime { get; set; }
         public int Capacity { get; set; }
         public SessionStatus Status { get; set; }
+        public ActivityApprovalStatus ApprovalStatus { get; set; }
         public int AvailableCapacity { get; set; }
         public decimal Price { get; set; }
         public string? MeetingUrl { get; set; }

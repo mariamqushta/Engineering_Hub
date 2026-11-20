@@ -63,7 +63,7 @@ namespace Engineering_Hub.Controllers
 
         // UPDATE
         [HttpPut("{id}")]
- 
+        [Authorize(Roles = "Instructor")]
         public async Task<IActionResult> UpdateWorkshop(
             int id,
             WorkshopDTO dto)
@@ -108,6 +108,23 @@ namespace Engineering_Hub.Controllers
                 return BadRequest(result.Message);
 
             return Ok(result.Message);
+        }
+        // GET WORKSHOPS BELONGING TO THE LOGGED-IN INSTRUCTOR
+        [HttpGet("Instructor")]
+        [Authorize(Roles = "Instructor")]
+        public async Task<IActionResult> GetWorkshopsByInstructor()
+        {
+            var instructorId =
+                User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (instructorId == null)
+                return Unauthorized();
+
+            var workshops =
+                await _workshopService.GetWorkshopsByInstructorAsync(
+                    instructorId);
+
+            return Ok(workshops);
         }
     }
 }

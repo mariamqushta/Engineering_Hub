@@ -164,9 +164,31 @@ namespace Engineering_Hub.Controllers
             {
                 return BadRequest("Role does not exist.");
             }
+            var email = string.IsNullOrWhiteSpace(dto.Email)
+    ? null
+    : dto.Email.Trim();
 
+            var phoneNumber = string.IsNullOrWhiteSpace(dto.PhoneNumber)
+                ? null
+                : dto.PhoneNumber.Trim();
+
+            if (email == null && phoneNumber == null)
+            {
+                return BadRequest("Please provide at least an email address or a phone number.");
+            }
+
+            if (email != null)
+            {
+                var existingEmail = await _userManager.FindByEmailAsync(email);
+
+                if (existingEmail != null)
+                {
+                    return BadRequest("This email address is already registered.");
+                }
+            }
             var user = _mapper.Map<ApplicationUser>(dto);
-
+            user.Email = email;
+            user.PhoneNumber = phoneNumber;
             user.AccountType = dto.Role == "Student"
                 ? dto.AccountType
                 : AccountType.GroupStudent;

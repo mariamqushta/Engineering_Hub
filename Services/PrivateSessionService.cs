@@ -262,6 +262,68 @@ namespace Engineering_Hub.Services
             return created;
         }
 
+
+        private bool HasInstructorActivityOrWorkshopConflict(
+            string instructorId,
+            DateTime startUtc,
+            DateTime endUtc)
+        {
+            // 1. Check Interactive Activities.
+            var activities = _uow.InteractiveActivityrepo
+                .GetByCondition(x =>
+                    x.InstructorId == instructorId &&
+                    x.Status != SessionStatus.Cancelled &&
+                    (x.ApprovalStatus == ActivityApprovalStatus.Pending ||
+                     x.ApprovalStatus == ActivityApprovalStatus.Approved))
+                .ToList();
+
+            foreach (var activity in activities)
+            {
+                var activityStartUtc = LocalToUtc(
+                    activity.Date,
+                    activity.StartTime);
+
+                var activityEndUtc = LocalToUtc(
+                    activity.Date,
+                    activity.EndTime);
+
+                if (activityStartUtc < endUtc &&
+                    activityEndUtc > startUtc)
+                {
+                    return true;
+                }
+            }
+
+            // 2. Check Workshops.
+            var workshops = _uow.Workshoprepo
+                .GetByCondition(x =>
+                    x.InstructorId == instructorId &&
+                    x.Status != SessionStatus.Cancelled &&
+                    (x.ApprovalStatus == ActivityApprovalStatus.Pending ||
+                     x.ApprovalStatus == ActivityApprovalStatus.Approved))
+                .ToList();
+
+            foreach (var workshop in workshops)
+            {
+                var workshopStartUtc = LocalToUtc(
+                    workshop.Date,
+                    workshop.StartTime);
+
+                var workshopEndUtc = LocalToUtc(
+                    workshop.Date,
+                    workshop.EndTime);
+
+                if (workshopStartUtc < endUtc &&
+                    workshopEndUtc > startUtc)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+
         // =========================================
         // STUDENT CANCELLATION
         // =========================================
@@ -1103,20 +1165,37 @@ namespace Engineering_Hub.Services
         // DATABASE VALIDATION HELPERS
         // =========================================
 
+
         private async Task<bool> HasConflictAsync(
             string studentId,
             string instructorId,
             DateTime startUtc,
             DateTime endUtc)
         {
-            return await _uow.PrivateOccurrencerepo.Query()
+            // 1. Check existing Private Sessions.
+            var privateConflict = await _uow.PrivateOccurrencerepo.Query()
                 .AnyAsync(o =>
                     o.Status != SessionStatus.Cancelled &&
                     (o.StudentId == studentId ||
                      o.InstructorId == instructorId) &&
                     o.StartUtc < endUtc &&
                     o.EndUtc > startUtc);
+
+            if (privateConflict)
+                return true;
+
+            // 2. Check Interactive Activities and Workshops.
+            if (HasInstructorActivityOrWorkshopConflict(
+                instructorId,
+                startUtc,
+                endUtc))
+            {
+                return true;
+            }
+
+            return false;
         }
+
 
         private async Task<bool> InstructorIsAvailableAsync(
             string instructorId,
