@@ -82,8 +82,8 @@ builder.Services.AddCors(options =>
         policy
             .WithOrigins(
                 "http://localhost:4200",
-                "http://engineeringhubui.runasp.net",
-                "http://islamic-ui.runasp.net"
+                "https://engineeringhubui.runasp.net",
+                "https://islamic-ui.runasp.net"
             )
             .AllowAnyHeader()
             .AllowAnyMethod()
