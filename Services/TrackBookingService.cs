@@ -329,11 +329,11 @@ namespace Engineering_Hub.Services
         }
 
 
-        public async Task<(bool Success, string Message)> ApproveRequestAsync(
-    int requestId)
+
+
+        public async Task<(bool Success, string Message)> ApproveRequestAsync(int requestId)
         {
-            var request = _unitOfWork.TrackBookingRequestrepo
-                .GetById(requestId);
+            var request = _unitOfWork.TrackBookingRequestrepo.GetById(requestId);
 
             if (request == null)
                 return (false, "Booking request not found.");
@@ -352,7 +352,7 @@ namespace Engineering_Hub.Services
                     e.TrackId == request.TrackId)
                 .FirstOrDefault();
 
-            // A new booking creates an enrollment.
+            // Create a new enrollment or upgrade the existing enrollment.
             if (enrollment == null)
             {
                 enrollment = new TrackEnrollment
@@ -369,7 +369,6 @@ namespace Engineering_Hub.Services
             }
             else
             {
-                // An existing enrollment is updated for an upgrade.
                 if (!IsUpgrade(enrollment.BookingType, request.BookingType))
                 {
                     return (
@@ -383,23 +382,25 @@ namespace Engineering_Hub.Services
                 enrollment.Status = SessionStatus.Active;
             }
 
-            // Include interactive activities when selected.
+            // Determine which items are included in this package.
             bool includesInteractive =
                 request.BookingType == TrackBookingType.TrackWithInteractive ||
-                request.BookingType ==
-                    TrackBookingType.TrackWithInteractiveAndWorkshop;
+                request.BookingType == TrackBookingType.TrackWithInteractiveAndWorkshop;
 
+            bool includesWorkshops =
+                request.BookingType == TrackBookingType.TrackWithInteractiveAndWorkshop;
+
+            // Automatically book every non-cancelled interactive activity.
             if (includesInteractive)
             {
                 var activities = _unitOfWork.InteractiveActivityrepo
-                    .GetByCondition(a => a.TrackId == request.TrackId)
+                    .GetByCondition(a =>
+                        a.TrackId == request.TrackId &&
+                        a.Status != SessionStatus.Cancelled)
                     .ToList();
 
                 foreach (var activity in activities)
                 {
-                    if (activity.Status == SessionStatus.Cancelled)
-                        continue;
-
                     var booking = _unitOfWork.InteractiveBookingrepo
                         .GetByCondition(b =>
                             b.UserId == request.StudentId &&
@@ -423,24 +424,25 @@ namespace Engineering_Hub.Services
                     }
                     else
                     {
+                        // An existing individual booking is now included in the package.
+                        booking.Source = BookingSource.TrackBooking;
                         booking.ApprovalStatus = BookingApprovalStatus.Approved;
                     }
                 }
             }
 
-            // Include workshops only in the complete package.
-            if (request.BookingType ==
-                TrackBookingType.TrackWithInteractiveAndWorkshop)
+            // Automatically book every non-cancelled workshop
+            // only when the student purchases the complete package.
+            if (includesWorkshops)
             {
                 var workshops = _unitOfWork.Workshoprepo
-                    .GetByCondition(w => w.TrackId == request.TrackId)
+                    .GetByCondition(w =>
+                        w.TrackId == request.TrackId &&
+                        w.Status != SessionStatus.Cancelled)
                     .ToList();
 
                 foreach (var workshop in workshops)
                 {
-                    if (workshop.Status == SessionStatus.Cancelled)
-                        continue;
-
                     var booking = _unitOfWork.WorkshopBookingrepo
                         .GetByCondition(b =>
                             b.UserId == request.StudentId &&
@@ -464,19 +466,20 @@ namespace Engineering_Hub.Services
                     }
                     else
                     {
+                        // An existing individual booking is now included in the package.
+                        booking.Source = BookingSource.TrackBooking;
                         booking.ApprovalStatus = BookingApprovalStatus.Approved;
                     }
                 }
             }
 
+            // Approve the package request.
             request.ApprovalStatus = BookingApprovalStatus.Approved;
 
             await _unitOfWork.SaveAsync();
 
             return (true, "Booking request approved successfully.");
         }
-
-
         public async Task<(bool Success, string Message)> RejectRequestAsync(
     int requestId)
         {

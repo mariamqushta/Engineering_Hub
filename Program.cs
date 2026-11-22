@@ -82,8 +82,13 @@ builder.Services.AddCors(options =>
         policy
             .WithOrigins(
                 "http://localhost:4200",
+<<<<<<< HEAD
                 "https://engineeringhubui.runasp.net",
                 "https://islamic-ui.runasp.net"
+=======
+                "http://engineeringhubui.runasp.net",
+                "http://islamic-ui.runasp.net"
+>>>>>>> 22b4b21 (Fix package booking and calendar integration)
             )
             .AllowAnyHeader()
             .AllowAnyMethod()
