@@ -799,9 +799,48 @@ namespace Engineering_Hub.Services
 
             activity.ApprovalStatus = ActivityApprovalStatus.Approved;
 
+            // Find students who have an approved, active package
+            // that includes interactive activities.
+            var eligibleEnrollments = _unitWork.TrackEnrollmentrepo
+                .GetByCondition(e =>
+                    e.TrackId == activity.TrackId &&
+                    e.Status == SessionStatus.Active &&
+                    e.ApprovalStatus == BookingApprovalStatus.Approved &&
+                    (
+                        e.BookingType == TrackBookingType.TrackWithInteractive ||
+                        e.BookingType == TrackBookingType.TrackWithInteractiveAndWorkshop
+                    ))
+                .ToList();
+
+            foreach (var enrollment in eligibleEnrollments)
+            {
+                // Check whether this student already has a booking.
+                var existingBooking = _unitWork.InteractiveBookingrepo
+                    .GetByCondition(b =>
+                        b.UserId == enrollment.StudentId &&
+                        b.InteractiveActivityId == activity.Id)
+                    .FirstOrDefault();
+
+                // Don't create duplicate bookings.
+                if (existingBooking != null)
+                    continue;
+
+                var booking = new InteractiveBooking
+                {
+                    UserId = enrollment.StudentId,
+                    InteractiveActivityId = activity.Id,
+                    BookedAt = DateTime.UtcNow,
+                    Status = SessionStatus.Scheduled,
+                    Source = BookingSource.TrackBooking,
+                    ApprovalStatus = BookingApprovalStatus.Approved
+                };
+
+                _unitWork.InteractiveBookingrepo.add(booking);
+            }
+
             await _unitWork.SaveAsync();
 
-            return (true, "Interactive activity approved successfully.");
+            return (true, "Interactive activity approved and eligible package students were booked successfully.");
         }
 
 
